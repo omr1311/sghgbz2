@@ -1,779 +1,465 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="tr">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Yeni Yıl + Atış Simülatörü (Pozisyon-Zaman Grafiği Dahil)</title>
-<style>
-  :root{
-    --bg:#000;
-    --accent:#ffeb3b;
-    --accent2:#f44336;
-    --green:#4caf50;
-    --muted:#cfd8dc;
-    --panel:#071022;
-  }
-  html,body{height:100%;margin:0;background:var(--bg);color:#fff;font-family:Arial,Helvetica,sans-serif}
-  .wrap{display:flex;flex-direction:column;align-items:center;gap:18px;padding:18px}
-  /* Top celebration stage */
-  #scene{position:relative;width:100%;max-width:1100px;height:320px;background:linear-gradient(180deg,#001 0%, #000 100%);border-radius:12px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,0.6)}
-  .headline{position:absolute;top:12px;left:50%;transform:translateX(-50%);font-size:28px;color:var(--accent);text-shadow:0 0 18px rgba(255,235,59,0.6);z-index:40}
-  .year{position:absolute;top:36%;left:50%;transform:translateX(-50%);font-size:120px;font-weight:800;color:var(--accent);display:flex;gap:6px;z-index:30}
-  .digit{display:inline-block;width:90px;text-align:center;transform-origin:center center}
-  .stickman{position:absolute;bottom:18%;left:-120px;width:60px;height:120px;font-size:60px;opacity:0;transition:left 1.6s ease,opacity .8s;z-index:35}
-  .six{position:absolute;top:-220px;left:50%;transform:translateX(-50%);font-size:120px;color:#f44336;font-weight:bold;transition:top 1s ease,opacity .9s;opacity:0;z-index:32}
-  .message{position:absolute;bottom:8%;left:50%;transform:translateX(-50%);font-size:28px;color:var(--green);opacity:0;transition:opacity 1s;z-index:35}
-  canvas#fireworks{position:absolute;top:0;left:0;width:100%;height:100%;z-index:10}
-  canvas#snow{position:absolute;top:0;left:0;width:100%;height:100%;z-index:5;pointer-events:none}
-  /* Simulator panel */
-  .sim-panel{width:100%;max-width:1100px;background:linear-gradient(180deg,#071022 0%, #041022 100%);border-radius:12px;padding:12px;box-shadow:0 10px 30px rgba(0,0,0,0.6);display:grid;grid-template-columns:1fr 360px;gap:12px}
-  .stage-sim{background:linear-gradient(180deg,#062034 0%, #071022 100%);border-radius:8px;padding:8px;position:relative;min-height:360px}
-  .controls{padding:8px;display:flex;flex-direction:column;gap:8px}
-  label{font-size:13px;color:var(--muted);margin-bottom:6px}
-  input[type="number"], select, input[type="range"]{width:100%;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.06);background:#071022;color:#fff}
-  .btns{display:flex;gap:8px}
-  button{padding:8px 10px;border-radius:8px;border:none;background:var(--accent);color:#000;font-weight:700;cursor:pointer}
-  button.secondary{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
-  .readouts{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:6px}
-  .readout{background:rgba(255,255,255,0.02);padding:8px;border-radius:6px;font-size:13px}
-  .graphs{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
-  canvas.graph{width:100%;height:160px;border-radius:8px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005));border:1px solid rgba(255,255,255,0.03)}
-  .summary{background:rgba(255,255,255,0.02);padding:8px;border-radius:8px;font-size:13px}
-  .toggles{display:flex;gap:6px;flex-wrap:wrap}
-  .toggle{padding:6px 8px;border-radius:6px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:var(--muted);cursor:pointer}
-  .toggle.active{background:rgba(255,255,255,0.04);color:#fff}
-  .small{font-size:12px;color:var(--muted)}
-  @media (max-width:1100px){.sim-panel{grid-template-columns:1fr}.graphs{grid-template-columns:repeat(2,1fr)}}
-</style>
+  <meta charset="utf-8" />
+  <title>Eğik Atış Simülasyonu — HTML Tek Dosya</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <!-- Plotly CDN for interaktif grafikler -->
+  <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+  <style>
+    body { font-family: Inter, Roboto, Arial, sans-serif; margin: 18px; color:#111; background:#f7f9fb; }
+    h1 { margin: 0 0 8px 0; font-size: 22px; }
+    .row { display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap; }
+    .panel { background:white; border-radius:8px; padding:12px; box-shadow:0 1px 6px rgba(20,30,50,0.06); }
+    .controls { width:360px; min-width:280px; }
+    .controls label { display:block; font-size:13px; margin-top:8px; color:#333; }
+    .controls input[type="number"], .controls input[type="text"], .controls select { width:100%; padding:8px; border-radius:6px; border:1px solid #d6dbe0; box-sizing:border-box; }
+    .controls input[type="range"] { width:100%; }
+    .btn { display:inline-block; margin-top:10px; padding:8px 12px; border-radius:6px; background:#0b69ff; color:white; border:none; cursor:pointer; }
+    .btn.secondary { background:#e6eefc; color:#0b69ff; border:1px solid #cfe0ff; }
+    .summary { min-width:260px; max-width:420px; }
+    .summary p { margin:6px 0; font-size:14px; }
+    #plots { flex:1 1 720px; min-width:360px; }
+    .plot { background:white; border-radius:8px; padding:8px; margin-bottom:12px; }
+    table { border-collapse:collapse; width:100%; font-size:13px; }
+    th, td { padding:6px 8px; border-bottom:1px solid #eef2f6; text-align:right; }
+    th { background:#fbfdff; text-align:center; font-weight:600; }
+    .small { font-size:12px; color:#666; }
+    .footer { margin-top:12px; font-size:13px; color:#444; }
+    .flex-between { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+    .codebox { font-family:monospace; font-size:12px; background:#0f1720; color:#e6eefc; padding:8px; border-radius:6px; overflow:auto; max-height:220px; }
+  </style>
 </head>
 <body>
-  <div class="wrap">
-    <!-- Celebration scene -->
-    <div id="scene">
-      <div class="headline">Yeni yılın kutlu olsun amk</div>
-      <canvas id="fireworks"></canvas>
-      <canvas id="snow"></canvas>
-      <div class="year" id="year">
-        <div class="digit" id="d2a">2</div>
-        <div class="digit" id="d0">0</div>
-        <div class="digit" id="d2b">2</div>
-        <div class="digit" id="d5">5</div>
+  <h1>Eğik Atış Simülasyonu — Tek Dosya HTML</h1>
+  <div class="row">
+    <div class="panel controls">
+      <strong>Parametreler</strong>
+      <label>İlk hız v₀ (m/s)
+        <input id="v0" type="number" step="0.1" value="25" />
+      </label>
+      <label>Açı θ (derece)
+        <input id="theta" type="number" step="0.1" value="45" />
+      </label>
+      <label>Başlangıç yüksekliği h₀ (m)
+        <input id="h0" type="number" step="0.01" value="0" />
+      </label>
+      <label>
+        Dünya ivmesi (varsayılan) ay = -20 m/s² (aşağı negatif)
+      </label>
+      <label>
+        Manuel ivme kullan
+        <select id="useManual">
+          <option value="false">Hayır (ax=0, ay=-20)</option>
+          <option value="true">Evet (ax_manual, ay_manual kullanılacak)</option>
+        </select>
+      </label>
+      <label>ax_manual (m/s²)
+        <input id="ax_manual" type="number" step="0.01" value="0.0" />
+      </label>
+      <label>ay_manual (m/s²) (aşağı negatif)
+        <input id="ay_manual" type="number" step="0.01" value="-20.0" />
+      </label>
+      <label>Zaman adımı dt (s)
+        <input id="dt" type="number" step="0.0001" value="0.01" />
+      </label>
+      <label>Maksimum simülasyon süresi max_time (s)
+        <input id="max_time" type="number" step="0.1" value="30.0" />
+      </label>
+      <label>Hedef minimum satır sayısı (en az)
+        <input id="min_rows" type="number" step="1" value="1000" />
+      </label>
+
+      <div style="margin-top:10px;">
+        <button id="runBtn" class="btn">Simülasyonu Çalıştır</button>
+        <button id="resetBtn" class="btn secondary">Parametreleri Sıfırla</button>
       </div>
-      <div class="stickman" id="stickman">🚶</div>
-      <div class="six" id="six">6</div>
-      <div class="message" id="msg">Yeni yılın kutlu olsun!</div>
+
+      <div style="margin-top:12px;">
+        <button id="downloadCsv" class="btn secondary">CSV İndir</button>
+        <button id="copyCsv" class="btn secondary">CSV Kopyala Panoya</button>
+      </div>
+
+      <div style="margin-top:12px;">
+        <div class="small">Not: Kod RK4 entegrasyonu ile hesap yapar; dt küçültüldüğünde doğruluk artar.</div>
+      </div>
     </div>
 
-    <!-- Simulator -->
-    <div class="sim-panel">
-      <div class="stage-sim" id="simStage">
-        <canvas id="trajCanvas" style="width:100%;height:100%;display:block;border-radius:6px"></canvas>
-        <div style="position:absolute;right:12px;top:12px;background:rgba(0,0,0,0.35);padding:6px 8px;border-radius:6px" id="modeBadge">Mod: Eğik Atış</div>
+    <div class="panel summary">
+      <strong>Özet</strong>
+      <div id="summaryBox">
+        <p>Henüz simülasyon çalıştırılmadı.</p>
+      </div>
+      <div style="margin-top:8px;">
+        <strong>İlk 10 satır</strong>
+        <div id="first10" style="margin-top:6px;"></div>
+      </div>
+      <div style="margin-top:8px;">
+        <strong>Son 10 satır</strong>
+        <div id="last10" style="margin-top:6px;"></div>
+      </div>
+    </div>
+
+    <div id="plots" class="panel">
+      <div class="flex-between">
+        <strong>Grafikler (eksende sayılar, işaretler ve hover değerleri gösterilir)</strong>
+        <div class="small">Zoom & pan ile detay inceleyebilirsiniz</div>
       </div>
 
-      <div class="controls">
-        <label>Atış tipi</label>
-        <select id="modeSelect">
-          <option value="oblique">Eğik Atış</option>
-          <option value="horizontal">Yatay Atış</option>
-          <option value="up">Yukarı Düşey</option>
-          <option value="down">Aşağı Düşey</option>
-        </select>
-
-        <div style="display:flex;gap:8px">
-          <div style="flex:1">
-            <label>İlk hız v₀ (m/s)</label>
-            <input id="v0" type="number" step="0.1" value="25" />
-          </div>
-          <div style="width:110px">
-            <label>Açı θ (°)</label>
-            <input id="angle" type="number" step="0.1" value="45" />
-          </div>
-        </div>
-
-        <div style="display:flex;gap:8px">
-          <div style="flex:1">
-            <label>Başlangıç yüksekliği h₀ (m)</label>
-            <input id="h0" type="number" step="0.1" value="0" />
-          </div>
-          <div style="width:110px">
-            <label>g (m/s²)</label>
-            <input id="g" type="number" step="0.01" value="9.81" />
-          </div>
-        </div>
-
-        <div class="btns">
-          <button id="startBtn">Başlat</button>
-          <button id="pauseBtn" class="secondary">Duraklat</button>
-          <button id="resetBtn" class="secondary">Sıfırla</button>
-        </div>
-
-        <div style="margin-top:6px">
-          <label>Hız çarpanı</label>
-          <input id="speedRange" type="range" min="0.1" max="5" step="0.1" value="1" />
-        </div>
-
-        <div class="readouts">
-          <div class="readout">t: <span id="rt_t">0.000</span> s</div>
-          <div class="readout">x: <span id="rt_x">0.000</span> m</div>
-          <div class="readout">y: <span id="rt_y">0.000</span> m</div>
-          <div class="readout">|V|: <span id="rt_v">0.000</span> m/s</div>
-          <div class="readout">Vx: <span id="rt_vx">0.000</span> m/s</div>
-          <div class="readout">Vy: <span id="rt_vy">0.000</span> m/s</div>
-          <div class="readout">ax: <span id="rt_ax">0.000</span> m/s²</div>
-          <div class="readout">ay: <span id="rt_ay">0.000</span> m/s²</div>
-        </div>
-
-        <div style="margin-top:6px">
-          <label>Görsel seçenek</label>
-          <div class="toggles">
-            <button class="toggle active" data-toggle="trace">İz izi</button>
-            <button class="toggle active" data-toggle="pred">Tahmini yol</button>
-            <button class="toggle active" data-toggle="vel">Hız vektörü</button>
-            <button class="toggle" data-toggle="grid">Izgara</button>
-          </div>
-        </div>
-
-        <div class="summary small" id="summaryPanel" style="margin-top:6px">
-          <div>Uçuş süresi: <span id="sum_time">—</span></div>
-          <div>Maks yükseklik: <span id="sum_hmax">—</span></div>
-          <div>Meniz: <span id="sum_range">—</span></div>
-          <div>Çarpma hızı: <span id="sum_imp_v">—</span></div>
-          <div>Çarpma açısı: <span id="sum_imp_angle">—</span></div>
-          <div>Zaman tepe: <span id="sum_tpeak">—</span></div>
-        </div>
-      </div>
-
-      <!-- Graphs row spans full width -->
-      <div style="grid-column:1/-1;width:100%;display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
-        <canvas id="vGraph" class="graph" style="flex:1 1 24%"></canvas>
-        <canvas id="aGraph" class="graph" style="flex:1 1 24%"></canvas>
-        <canvas id="sGraph" class="graph" style="flex:1 1 24%"></canvas>
-        <canvas id="posGraph" class="graph" style="flex:1 1 24%"></canvas>
-      </div>
+      <div id="posPlot" class="plot" style="height:320px;"></div>
+      <div id="speedPlot" class="plot" style="height:300px;"></div>
+      <div id="accPlot" class="plot" style="height:240px;"></div>
     </div>
   </div>
 
-<script>
-/* 
-  Bu dosya: başlangıçtaki Yeni Yıl animasyon kodunun üzerine
-  gerçekçi atış simülatörü ekler. Ayrıca aşağıda dört grafik:
-  - Hız-Zaman (|V|)
-  - İvme-Zaman (ay)
-  - Mesafe-Zaman (x ve y)
-  - Pozisyon-Zaman (x(t) ve y(t) ayrı çizgiler)
-  Tüm hesaplar analitik formüllere dayanır. Türkçe etiketler.
-*/
+  <div class="footer">
+    <div class="small">Bu HTML tek dosya içinde veri üretir, görselleştirir ve CSV olarak dışa aktarır. Grafikler Plotly ile çizilir; eksenlerde sayılar ve hover bilgileri görünür.</div>
+  </div>
 
-/* ---------- Celebration animation (ilk kodun geliştirilmiş hali) ---------- */
-const year = document.getElementById('year');
-const stickman = document.getElementById('stickman');
-const six = document.getElementById('six');
-const msg = document.getElementById('msg');
-const d5 = document.getElementById('d5');
+  <script>
+  // ---------- Yardımcı fonksiyonlar ----------
+  function deg2rad(d) { return d * Math.PI / 180.0; }
+  function formatNum(x, n=5) { return Number.parseFloat(x).toFixed(n); }
 
-// Fireworks canvas
-const fwCanvas = document.getElementById('fireworks');
-const fwCtx = fwCanvas.getContext('2d');
-const snowCanvas = document.getElementById('snow');
-const snowCtx = snowCanvas.getContext('2d');
-
-function resizeCelebration(){
-  fwCanvas.width = fwCanvas.clientWidth;
-  fwCanvas.height = fwCanvas.clientHeight;
-  snowCanvas.width = snowCanvas.clientWidth;
-  snowCanvas.height = snowCanvas.clientHeight;
-}
-window.addEventListener('resize', resizeCelebration);
-resizeCelebration();
-
-// Stickman entry
-setTimeout(()=>{ stickman.style.opacity=1; stickman.style.left="18%"; },800);
-// Move year slightly and keep digits visible; we'll animate 5 fade and 6 arrival
-setTimeout(()=>{ year.style.transform="translateX(-50%) translateX(80px)"; },2600);
-
-// 5 fade then replace with 6 (controlled)
-setTimeout(()=>{
-  // fade out 5
-  d5.style.transition = 'transform 0.9s ease, opacity 0.9s ease';
-  d5.style.transform = 'translateY(-40px) scale(.6)';
-  d5.style.opacity = '0';
-  // after fade, replace with 6 element and animate it
-  setTimeout(()=>{
-    const d6 = document.createElement('div');
-    d6.className = 'digit';
-    d6.id = 'd6';
-    d6.textContent = '6';
-    d6.style.opacity = 0;
-    d6.style.transform = 'translateY(40px) scale(.4)';
-    year.replaceChild(d6, d5);
-    // animate 6 into place
-    setTimeout(()=>{ d6.style.transition='transform 0.9s ease, opacity 0.9s ease'; d6.style.transform='translateY(0) scale(1)'; d6.style.opacity=1; },50);
-  },950);
-},4200);
-
-// show six element (big) falling into center for effect
-setTimeout(()=>{ six.style.opacity=1; six.style.top="36%"; six.style.transition='top 0.9s ease, opacity 0.9s ease'; },4200);
-
-// message fade in
-setTimeout(()=>{ msg.style.opacity=1; },5200);
-
-// Fireworks implementation (improved confetti-like fireworks)
-let fireworks = [];
-function Firework(x,y,color){
-  this.x = x; this.y = y; this.particles = [];
-  for(let i=0;i<60;i++){
-    const speed = Math.random()*4 + 1;
-    const angle = Math.random()*Math.PI*2;
-    this.particles.push({
-      x: x, y: y,
-      vx: Math.cos(angle)*speed,
-      vy: Math.sin(angle)*speed,
-      life: 60 + Math.random()*40,
-      color: color || `hsl(${Math.random()*360},80%,60%)`
-    });
+  // RK4 integrator for 2D motion with constant acceleration (ax, ay)
+  // state: [x, y, vx, vy]
+  function derivatives(state, acc) {
+    return [ state[2], state[3], acc[0], acc[1] ];
   }
-}
-function spawnFirework(){
-  const x = Math.random()*fwCanvas.width;
-  const y = Math.random()*fwCanvas.height*0.5;
-  fireworks.push(new Firework(x,y));
-}
-function loopFireworks(){
-  fwCtx.clearRect(0,0,fwCanvas.width,fwCanvas.height);
-  if (Math.random() < 0.06) spawnFirework();
-  for(let i=fireworks.length-1;i>=0;i--){
-    const fw = fireworks[i];
-    for(let j=fw.particles.length-1;j>=0;j--){
-      const p = fw.particles[j];
-      p.x += p.vx;
-      p.y += p.vy;
-      p.vy += 0.06; // gravity-like pull for visual
-      p.life--;
-      fwCtx.fillStyle = p.color;
-      fwCtx.globalAlpha = Math.max(0, p.life/100);
-      fwCtx.fillRect(p.x, p.y, 2, 2);
-      if (p.life <= 0) fw.particles.splice(j,1);
+  function rk4_step(state, acc, dt) {
+    const k1 = derivatives(state, acc);
+    const s2 = state.map((v,i) => v + 0.5*dt*k1[i]);
+    const k2 = derivatives(s2, acc);
+    const s3 = state.map((v,i) => v + 0.5*dt*k2[i]);
+    const k3 = derivatives(s3, acc);
+    const s4 = state.map((v,i) => v + dt*k3[i]);
+    const k4 = derivatives(s4, acc);
+    return state.map((v,i) => v + dt*(k1[i] + 2*k2[i] + 2*k3[i] + k4[i]) / 6.0);
+  }
+
+  // CSV oluşturucu
+  function arrayToCSV(rows) {
+    const header = ['t (s)','x (m)','y (m)','vx (m/s)','vy (m/s)','|V| (m/s)','ax (m/s^2)','ay (m/s^2)'];
+    const lines = [header.join(',')];
+    for (const r of rows) {
+      lines.push(r.map(v => (typeof v === 'number') ? v.toPrecision(12) : v).join(','));
     }
-    if (fw.particles.length === 0) fireworks.splice(i,1);
+    return lines.join('\\n');
   }
-  fwCtx.globalAlpha = 1;
-  requestAnimationFrame(loopFireworks);
-}
-loopFireworks();
 
-// Snow effect
-let flakes = [];
-function initSnow(){
-  flakes = [];
-  for(let i=0;i<160;i++){
-    flakes.push({
-      x: Math.random()*snowCanvas.width,
-      y: Math.random()*snowCanvas.height,
-      r: 1 + Math.random()*3,
-      s: 0.3 + Math.random()*1.2,
-      drift: (Math.random()-0.5)*0.6
-    });
+  // DOM elemanları
+  const v0El = document.getElementById('v0');
+  const thetaEl = document.getElementById('theta');
+  const h0El = document.getElementById('h0');
+  const useManualEl = document.getElementById('useManual');
+  const axManualEl = document.getElementById('ax_manual');
+  const ayManualEl = document.getElementById('ay_manual');
+  const dtEl = document.getElementById('dt');
+  const maxTimeEl = document.getElementById('max_time');
+  const minRowsEl = document.getElementById('min_rows');
+
+  const runBtn = document.getElementById('runBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const downloadCsvBtn = document.getElementById('downloadCsv');
+  const copyCsvBtn = document.getElementById('copyCsv');
+
+  const summaryBox = document.getElementById('summaryBox');
+  const first10Box = document.getElementById('first10');
+  const last10Box = document.getElementById('last10');
+
+  let lastCSV = '';
+  let lastRows = [];
+
+  // Varsayılanları sıfırlama
+  function resetDefaults() {
+    v0El.value = 25;
+    thetaEl.value = 45;
+    h0El.value = 0;
+    useManualEl.value = 'false';
+    axManualEl.value = 0.0;
+    ayManualEl.value = -20.0;
+    dtEl.value = 0.01;
+    maxTimeEl.value = 30.0;
+    minRowsEl.value = 1000;
   }
-}
-function updateSnow(){
-  snowCtx.clearRect(0,0,snowCanvas.width,snowCanvas.height);
-  snowCtx.fillStyle = 'rgba(255,255,255,0.9)';
-  for(let f of flakes){
-    f.y += f.s;
-    f.x += f.drift;
-    if (f.y > snowCanvas.height + 10){ f.y = -10; f.x = Math.random()*snowCanvas.width; }
-    if (f.x > snowCanvas.width + 10) f.x = -10;
-    snowCtx.beginPath();
-    snowCtx.arc(f.x, f.y, f.r, 0, Math.PI*2);
-    snowCtx.fill();
-  }
-  requestAnimationFrame(updateSnow);
-}
-initSnow(); updateSnow();
+  resetBtn.addEventListener('click', resetDefaults);
 
-/* ---------- Projectile simulator (analitik) ---------- */
-/* DOM refs */
-const trajCanvas = document.getElementById('trajCanvas');
-const ctxTraj = trajCanvas.getContext('2d');
-const modeSelect = document.getElementById('modeSelect');
-const v0Input = document.getElementById('v0');
-const angleInput = document.getElementById('angle');
-const h0Input = document.getElementById('h0');
-const gInput = document.getElementById('g');
-const startBtn = document.getElementById('startBtn');
-const pauseBtn = document.getElementById('pauseBtn');
-const resetBtn = document.getElementById('resetBtn');
-const speedRange = document.getElementById('speedRange');
-const rt_t = document.getElementById('rt_t');
-const rt_x = document.getElementById('rt_x');
-const rt_y = document.getElementById('rt_y');
-const rt_v = document.getElementById('rt_v');
-const rt_vx = document.getElementById('rt_vx');
-const rt_vy = document.getElementById('rt_vy');
-const rt_ax = document.getElementById('rt_ax');
-const rt_ay = document.getElementById('rt_ay');
-const sum_time = document.getElementById('sum_time');
-const sum_hmax = document.getElementById('sum_hmax');
-const sum_range = document.getElementById('sum_range');
-const sum_imp_v = document.getElementById('sum_imp_v');
-const sum_imp_angle = document.getElementById('sum_imp_angle');
-const sum_tpeak = document.getElementById('sum_tpeak');
-const toggles = document.querySelectorAll('.toggle');
-const modeBadgeSim = document.getElementById('modeBadge');
-
-/* Graph canvases */
-const vCanvas = document.getElementById('vGraph'), aCanvas = document.getElementById('aGraph'), sCanvas = document.getElementById('sGraph'), posCanvas = document.getElementById('posGraph');
-const ctxV = vCanvas.getContext('2d'), ctxA = aCanvas.getContext('2d'), ctxS = sCanvas.getContext('2d'), ctxP = posCanvas.getContext('2d');
-
-let devicePixelRatioVal = window.devicePixelRatio || 1;
-function resizeAll(){
-  // trajectory canvas
-  trajCanvas.width = trajCanvas.clientWidth * devicePixelRatioVal;
-  trajCanvas.height = trajCanvas.clientHeight * devicePixelRatioVal;
-  // graphs
-  [vCanvas,aCanvas,sCanvas,posCanvas].forEach(c=>{
-    c.width = c.clientWidth * devicePixelRatioVal;
-    c.height = c.clientHeight * devicePixelRatioVal;
+  // Simülasyonu çalıştır
+  runBtn.addEventListener('click', () => {
+    runBtn.disabled = true;
+    runBtn.textContent = 'Çalışıyor...';
+    setTimeout(() => {
+      try {
+        runSimulation();
+      } catch (e) {
+        alert('Hata: ' + e.message);
+      } finally {
+        runBtn.disabled = false;
+        runBtn.textContent = 'Simülasyonu Çalıştır';
+      }
+    }, 10);
   });
-}
-window.addEventListener('resize', ()=>{ devicePixelRatioVal = window.devicePixelRatio || 1; resizeAll(); drawStaticStage(); });
-resizeAll();
 
-/* Simulation state */
-let running = false, paused = false;
-let simStart = 0, simTime = 0, lastFrame = 0;
-let speedFactor = 1.0;
-let params = { mode:'oblique', v0:25, angleDeg:45, h0:0, g:9.81, maxSimTime:120 };
-let trace = []; // recorded states for plotting
-let predicted = []; // predicted analytic path
-let impactTime = null;
-let peakInfo = null;
+  // CSV indirme
+  downloadCsvBtn.addEventListener('click', () => {
+    if (!lastCSV) { alert('Önce simülasyonu çalıştırın.'); return; }
+    const blob = new Blob([lastCSV], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'projectile_data.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  });
 
-/* Helpers */
-const fmt = (v, sig=4) => {
-  if (!isFinite(v)) return '—';
-  const n = Number(v);
-  if (Math.abs(n) >= 1000 || Math.abs(n) < 0.001) return n.toExponential(sig-1);
-  return Number(n.toPrecision(sig)).toString();
-};
-
-function computeInitials(p){
-  const rad = p.angleDeg * Math.PI / 180;
-  let v0x=0, v0y=0;
-  if (p.mode === 'oblique'){ v0x = p.v0 * Math.cos(rad); v0y = p.v0 * Math.sin(rad); }
-  else if (p.mode === 'horizontal'){ v0x = p.v0; v0y = 0; }
-  else if (p.mode === 'up'){ v0x = 0; v0y = p.v0; }
-  else if (p.mode === 'down'){ v0x = 0; v0y = -p.v0; }
-  return {v0x, v0y};
-}
-function stateAt(t,p){
-  const {v0x, v0y} = computeInitials(p);
-  const x = v0x * t;
-  const y = p.h0 + v0y * t - 0.5 * p.g * t * t;
-  const vx = v0x;
-  const vy = v0y - p.g * t;
-  const ax = 0;
-  const ay = -p.g;
-  const speed = Math.hypot(vx, vy);
-  return {t,x,y,vx,vy,ax,ay,speed};
-}
-function computeImpactTime(p){
-  const {v0x, v0y} = computeInitials(p);
-  const a = 0.5 * p.g;
-  const b = -v0y;
-  const c = -p.h0;
-  const disc = b*b - 4*a*c;
-  if (disc < 0) return null;
-  const sqrtD = Math.sqrt(disc);
-  const t1 = (-b + sqrtD) / (2*a);
-  const t2 = (-b - sqrtD) / (2*a);
-  const candidates = [t1,t2].filter(t => t > 1e-9);
-  if (candidates.length === 0) return null;
-  return Math.min(...candidates);
-}
-function computePeak(p){
-  const {v0x, v0y} = computeInitials(p);
-  if (Math.abs(v0y) < 1e-9) return {tPeak:0, hMax:p.h0};
-  const tPeak = v0y / p.g;
-  if (tPeak < 0) return {tPeak:0, hMax:p.h0};
-  const hMax = p.h0 + v0y * tPeak - 0.5 * p.g * tPeak * tPeak;
-  return {tPeak, hMax};
-}
-function computeImpactDetails(p,tImp){
-  if (tImp === null) return null;
-  const s = stateAt(tImp,p);
-  const v = s.speed;
-  const angle = Math.atan2(s.vy, s.vx) * 180 / Math.PI;
-  return {impactSpeed:v, impactAngle:angle, xLand:s.x};
-}
-
-/* Prepare predicted path */
-function preparePredicted(){
-  predicted = [];
-  const dt = 0.01;
-  const tEnd = (impactTime === null) ? Math.min(params.maxSimTime, 10) : impactTime;
-  for (let t=0; t<=tEnd+1e-9; t+=dt){
-    predicted.push(stateAt(t, params));
-  }
-}
-
-/* Draw static stage (axes, predicted path optionally) */
-function drawStaticStage(){
-  resizeAll();
-  const cw = trajCanvas.width / devicePixelRatioVal;
-  const ch = trajCanvas.height / devicePixelRatioVal;
-  ctxTraj.save();
-  ctxTraj.scale(devicePixelRatioVal, devicePixelRatioVal);
-  ctxTraj.clearRect(0,0,trajCanvas.width,trajCanvas.height);
-
-  // background
-  ctxTraj.fillStyle = 'rgba(0,10,20,0.6)';
-  ctxTraj.fillRect(0,0,cw,ch);
-
-  // determine world extents from predicted or trace
-  const pts = (predicted.length>0) ? predicted : (trace.length>0 ? trace : [{x:0,y:params.h0}]);
-  const xs = pts.map(p=>p.x);
-  const ys = pts.map(p=>p.y);
-  const minX = Math.min(0, ...xs);
-  const maxX = Math.max(...xs, 10);
-  const minY = Math.min(0, ...ys);
-  const maxY = Math.max(...ys, 10);
-
-  const pad = 40;
-  const worldW = maxX - minX || 1;
-  const worldH = Math.max(maxY - minY, 1);
-  const toX = x => pad + ((x - minX) / worldW) * (cw - pad*2);
-  const toY = y => (ch - pad) - ((y - minY) / worldH) * (ch - pad*2);
-
-  // grid
-  if (document.querySelector('[data-toggle="grid"].active')) {
-    ctxTraj.strokeStyle = 'rgba(255,255,255,0.03)';
-    ctxTraj.lineWidth = 1;
-    for (let gx=0; gx<=cw; gx+=40){ ctxTraj.beginPath(); ctxTraj.moveTo(gx,0); ctxTraj.lineTo(gx,ch); ctxTraj.stroke(); }
-    for (let gy=0; gy<=ch; gy+=40){ ctxTraj.beginPath(); ctxTraj.moveTo(0,gy); ctxTraj.lineTo(cw,gy); ctxTraj.stroke(); }
-  }
-
-  // ground
-  const groundY = toY(0);
-  ctxTraj.strokeStyle = 'rgba(120,200,120,0.95)';
-  ctxTraj.lineWidth = 2;
-  ctxTraj.beginPath(); ctxTraj.moveTo(0,groundY); ctxTraj.lineTo(cw,groundY); ctxTraj.stroke();
-
-  // predicted path dashed
-  if (document.querySelector('[data-toggle="pred"].active') && predicted.length>0){
-    ctxTraj.setLineDash([6,6]);
-    ctxTraj.strokeStyle = 'rgba(255,255,255,0.18)';
-    ctxTraj.lineWidth = 1.6;
-    ctxTraj.beginPath();
-    for (let i=0;i<predicted.length;i++){
-      const p = predicted[i];
-      const cx = toX(p.x), cy = toY(p.y);
-      if (i===0) ctxTraj.moveTo(cx,cy); else ctxTraj.lineTo(cx,cy);
+  // CSV kopyala
+  copyCsvBtn.addEventListener('click', async () => {
+    if (!lastCSV) { alert('Önce simülasyonu çalıştırın.'); return; }
+    try {
+      await navigator.clipboard.writeText(lastCSV);
+      alert('CSV panoya kopyalandı.');
+    } catch (e) {
+      alert('Panoya kopyalama başarısız: ' + e.message);
     }
-    ctxTraj.stroke();
-    ctxTraj.setLineDash([]);
-  }
+  });
 
-  // trace
-  if (document.querySelector('[data-toggle="trace"].active') && trace.length>0){
-    ctxTraj.strokeStyle = 'rgba(255,200,80,0.95)';
-    ctxTraj.lineWidth = 2.6;
-    ctxTraj.beginPath();
-    for (let i=0;i<trace.length;i++){
-      const p = trace[i];
-      const cx = toX(p.x), cy = toY(p.y);
-      if (i===0) ctxTraj.moveTo(cx,cy); else ctxTraj.lineTo(cx,cy);
+  // Ana simülasyon fonksiyonu
+  function runSimulation() {
+    // Parametreleri oku
+    let v0 = parseFloat(v0El.value);
+    let theta_deg = parseFloat(thetaEl.value);
+    let h0 = parseFloat(h0El.value);
+    const useManual = (useManualEl.value === 'true');
+    let ax_manual = parseFloat(axManualEl.value);
+    let ay_manual = parseFloat(ayManualEl.value);
+    let dt = parseFloat(dtEl.value);
+    const max_time = parseFloat(maxTimeEl.value);
+    const min_rows = Math.max(1, parseInt(minRowsEl.value));
+
+    // Varsayılan dünya ivmesi
+    const default_ax = 0.0;
+    const default_ay = -20.0;
+
+    const ax = useManual ? ax_manual : default_ax;
+    const ay = useManual ? ay_manual : default_ay;
+
+    // Başlangıç durumları
+    const theta = deg2rad(theta_deg);
+    const vx0 = v0 * Math.cos(theta);
+    const vy0 = v0 * Math.sin(theta);
+
+    // Başlangıç state: [x, y, vx, vy]
+    let state = [0.0, h0, vx0, vy0];
+
+    // Veri saklama
+    const rows = [];
+    let t = 0.0;
+    let step = 0;
+
+    // Simülasyon döngüsü (RK4)
+    // Simülasyon y <= 0 (zemine çarpma) ile sonlanır; eğer erken bitiyorsa dt küçültülerek tekrar çalıştırılır
+    function singleRun(local_dt) {
+      rows.length = 0;
+      t = 0.0;
+      step = 0;
+      state = [0.0, h0, vx0, vy0];
+      while (t <= max_time + 1e-12 && rows.length < 200000) {
+        const speed = Math.hypot(state[2], state[3]);
+        rows.push([t, state[0], state[1], state[2], state[3], speed, ax, ay]);
+        // Eğer y <= 0 ve t>0 ise çarpma gerçekleşti; son noktayı daha doğru bulmak için lineer interpolasyon yap
+        if (state[1] <= 0 && t > 0) {
+          break;
+        }
+        // RK4 adımı
+        state = rk4_step(state, [ax, ay], local_dt);
+        t += local_dt;
+        step++;
+      }
+      return rows;
     }
-    ctxTraj.stroke();
-  }
 
-  // current projectile
-  const cur = trace.length>0 ? trace[trace.length-1] : (predicted.length>0 ? predicted[0] : null);
-  if (cur){
-    const cx = toX(cur.x), cy = toY(cur.y);
-    // shadow
-    ctxTraj.fillStyle = 'rgba(0,0,0,0.35)';
-    ctxTraj.beginPath(); ctxTraj.ellipse(cx+6, groundY+6, 18, 6, 0, 0, Math.PI*2); ctxTraj.fill();
-    // ball
-    ctxTraj.fillStyle = 'rgba(255,120,60,0.98)';
-    ctxTraj.beginPath(); ctxTraj.arc(cx, cy, 10, 0, Math.PI*2); ctxTraj.fill();
-    ctxTraj.strokeStyle = 'rgba(255,255,255,0.12)'; ctxTraj.lineWidth = 1; ctxTraj.stroke();
+    // İlk çalıştırma
+    let produced = singleRun(dt);
 
-    // velocity vector
-    if (document.querySelector('[data-toggle="vel"].active')){
-      const scale = 0.08 * (cw / Math.max(200, worldW));
-      ctxTraj.strokeStyle = 'rgba(120,220,255,0.95)';
-      ctxTraj.lineWidth = 2;
-      ctxTraj.beginPath();
-      ctxTraj.moveTo(cx, cy);
-      ctxTraj.lineTo(cx + cur.vx * scale, cy - cur.vy * scale);
-      ctxTraj.stroke();
-      const ax = cx + cur.vx * scale, ay = cy - cur.vy * scale;
-      ctxTraj.beginPath(); ctxTraj.fillStyle = 'rgba(120,220,255,0.95)'; ctxTraj.arc(ax, ay, 4, 0, Math.PI*2); ctxTraj.fill();
+    // Eğer satır sayısı < min_rows ve simülasyon erken bitmişse dt'yi küçültüp yeniden üret
+    if (produced.length < min_rows) {
+      // dt'yi otomatik küçültme stratejisi: dt_new = dt * (produced/min_rows)
+      // ama dt küçültme faktörü çok büyükse kademeli azalt
+      let attempts = 0;
+      while (produced.length < min_rows && attempts < 12) {
+        attempts++;
+        // hedeflenen dt
+        const ratio = produced.length / min_rows;
+        // güvenli küçültme: dt_new = dt * max(0.2, ratio)
+        const factor = Math.max(0.05, ratio);
+        dt = Math.max(1e-5, dt * factor);
+        produced = singleRun(dt);
+      }
     }
-  }
 
-  // markers
-  if (predicted.length>0){
-    const peak = predicted.reduce((acc,p)=> p.y>acc.y?p:acc, {y:-Infinity});
-    if (peak.y > -1e9){
-      const px = toX(peak.x), py = toY(peak.y);
-      ctxTraj.fillStyle = 'rgba(255,255,255,0.9)';
-      ctxTraj.beginPath(); ctxTraj.arc(px, py, 5, 0, Math.PI*2); ctxTraj.fill();
-      ctxTraj.fillStyle = 'rgba(255,255,255,0.9)'; ctxTraj.font = '12px Arial'; ctxTraj.fillText('Maks Yükseklik', px+8, py-8);
+    // Eğer hala yeterli değilse max_time'ı artır ve tekrar
+    if (produced.length < min_rows) {
+      let attempts = 0;
+      let newMax = max_time;
+      while (produced.length < min_rows && attempts < 8) {
+        attempts++;
+        newMax *= 1.5;
+        // geçici max_time ile yeniden çalıştır
+        const oldMax = parseFloat(maxTimeEl.value);
+        const tmpMax = newMax;
+        // run with extended max_time by temporarily overriding
+        const savedMax = parseFloat(maxTimeEl.value);
+        // run singleRun with closure using tmpMax by temporarily setting max_time variable
+        // (we'll implement a quick local runner)
+        function singleRunWithMax(local_dt, local_max) {
+          const tmpRows = [];
+          let tmpState = [0.0, h0, vx0, vy0];
+          let tmpT = 0.0;
+          while (tmpT <= local_max + 1e-12 && tmpRows.length < 500000) {
+            const speed = Math.hypot(tmpState[2], tmpState[3]);
+            tmpRows.push([tmpT, tmpState[0], tmpState[1], tmpState[2], tmpState[3], speed, ax, ay]);
+            if (tmpState[1] <= 0 && tmpT > 0) break;
+            tmpState = rk4_step(tmpState, [ax, ay], local_dt);
+            tmpT += local_dt;
+          }
+          return tmpRows;
+        }
+        produced = singleRunWithMax(dt, tmpMax);
+      }
     }
-    const land = predicted.slice().reverse().find(p=>p.y<=0);
-    if (land){
-      const lx = toX(land.x), ly = toY(land.y);
-      ctxTraj.fillStyle = 'rgba(120,255,140,0.95)';
-      ctxTraj.beginPath(); ctxTraj.rect(lx-6, ly-6, 12, 12); ctxTraj.fill();
-      ctxTraj.fillStyle = 'rgba(255,255,255,0.9)'; ctxTraj.fillText('İniş', lx+8, ly+4);
+
+    // Eğer hala yeterli değilse uyarı ver ama devam et
+    if (produced.length < min_rows) {
+      alert('Uyarı: Hedef satır sayısına ulaşılamadı. Üretilen satır sayısı: ' + produced.length);
     }
-  }
 
-  ctxTraj.restore();
-}
+    // Sonuçları kaydet
+    lastRows = produced.slice(); // kopya
+    lastCSV = arrayToCSV(lastRows);
 
-/* Graph drawing helpers */
-function resizeGraphCanvas(canvas){
-  const dpr = devicePixelRatioVal;
-  const rect = canvas.getBoundingClientRect();
-  const w = Math.max(1, Math.floor(rect.width * dpr));
-  const h = Math.max(1, Math.floor(rect.height * dpr));
-  if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
-}
-function drawLineGraph(canvas, ctx, dataX, dataY, color, label, currentTime=null){
-  resizeGraphCanvas(canvas);
-  const dpr = devicePixelRatioVal;
-  const cw = canvas.width / dpr, ch = canvas.height / dpr;
-  ctx.save(); ctx.scale(dpr, dpr);
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-
-  const pad = 36;
-  const minX = Math.min(...dataX), maxX = Math.max(...dataX);
-  const minY = Math.min(...dataY), maxY = Math.max(...dataY);
-  const rangeX = maxX - minX || 1;
-  const rangeY = maxY - minY || 1;
-
-  // axes & grid
-  ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(pad,8); ctx.lineTo(pad,ch-8); ctx.lineTo(cw-8,ch-8); ctx.stroke();
-  ctx.fillStyle = '#cfe9ff'; ctx.font = '12px Arial'; ctx.fillText(label, pad, 18);
-
-  // grid lines
-  for (let gx=0; gx<=4; gx++){
-    const x = pad + gx*(cw - pad - 8)/4;
-    ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.beginPath(); ctx.moveTo(x,8); ctx.lineTo(x,ch-8); ctx.stroke();
-  }
-  for (let gy=0; gy<=4; gy++){
-    const y = 8 + gy*(ch - 16)/4;
-    ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.beginPath(); ctx.moveTo(pad,y); ctx.lineTo(cw-8,y); ctx.stroke();
-  }
-
-  // plot
-  ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = 2;
-  for (let i=0;i<dataX.length;i++){
-    const x = pad + ((dataX[i] - minX)/rangeX) * (cw - pad - 8);
-    const y = (ch - pad) - ((dataY[i] - minY)/rangeY) * (ch - pad - 8);
-    if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-  }
-  ctx.stroke();
-
-  // cursor
-  if (currentTime !== null){
-    const cx = pad + ((currentTime - minX)/rangeX) * (cw - pad - 8);
-    ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.beginPath(); ctx.moveTo(cx,8); ctx.lineTo(cx,ch-8); ctx.stroke();
-  }
-
-  ctx.restore();
-}
-
-/* Position-time graph (x(t) and y(t) together) */
-function drawPositionGraph(canvas, ctx, times, xs, ys, currentTime=null){
-  resizeGraphCanvas(canvas);
-  const dpr = devicePixelRatioVal;
-  const cw = canvas.width / dpr, ch = canvas.height / dpr;
-  ctx.save(); ctx.scale(dpr, dpr);
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-
-  const pad = 36;
-  const minT = Math.min(...times), maxT = Math.max(...times);
-  const minV = Math.min(...xs, ...ys), maxV = Math.max(...xs, ...ys);
-  const rangeT = maxT - minT || 1;
-  const rangeV = maxV - minV || 1;
-
-  // axes & grid
-  ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(pad,8); ctx.lineTo(pad,ch-8); ctx.lineTo(cw-8,ch-8); ctx.stroke();
-  ctx.fillStyle = '#cfe9ff'; ctx.font = '12px Arial'; ctx.fillText('Pozisyon - Zaman (x ve y)', pad, 18);
-
-  for (let gx=0; gx<=4; gx++){
-    const x = pad + gx*(cw - pad - 8)/4;
-    ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.beginPath(); ctx.moveTo(x,8); ctx.lineTo(x,ch-8); ctx.stroke();
-  }
-  for (let gy=0; gy<=4; gy++){
-    const y = 8 + gy*(ch - 16)/4;
-    ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.beginPath(); ctx.moveTo(pad,y); ctx.lineTo(cw-8,y); ctx.stroke();
-  }
-
-  // x series
-  ctx.beginPath(); ctx.strokeStyle = '#ffd166'; ctx.lineWidth = 2;
-  for (let i=0;i<times.length;i++){
-    const cx = pad + ((times[i]-minT)/rangeT)*(cw - pad - 8);
-    const cy = (ch - pad) - ((xs[i]-minV)/rangeV)*(ch - pad - 8);
-    if (i===0) ctx.moveTo(cx,cy); else ctx.lineTo(cx,cy);
-  }
-  ctx.stroke();
-  // y series
-  ctx.beginPath(); ctx.strokeStyle = '#7fb3ff'; ctx.lineWidth = 2;
-  for (let i=0;i<times.length;i++){
-    const cx = pad + ((times[i]-minT)/rangeT)*(cw - pad - 8);
-    const cy = (ch - pad) - ((ys[i]-minV)/rangeV)*(ch - pad - 8);
-    if (i===0) ctx.moveTo(cx,cy); else ctx.lineTo(cx,cy);
-  }
-  ctx.stroke();
-
-  // legend
-  ctx.fillStyle = '#ffd166'; ctx.fillRect(cw-120, 12, 10, 10); ctx.fillStyle = '#cfe9ff'; ctx.fillText('x (yatay)', cw-104, 20);
-  ctx.fillStyle = '#7fb3ff'; ctx.fillRect(cw-120, 30, 10, 10); ctx.fillStyle = '#cfe9ff'; ctx.fillText('y (dikey)', cw-104, 38);
-
-  // cursor
-  if (currentTime !== null){
-    const cx = pad + ((currentTime - minT)/rangeT)*(cw - pad - 8);
-    ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.beginPath(); ctx.moveTo(cx,8); ctx.lineTo(cx,ch-8); ctx.stroke();
-  }
-
-  ctx.restore();
-}
-
-/* Simulation control functions */
-function resetSim(){
-  running = false; paused = false;
-  simTime = 0; trace = []; predicted = []; impactTime = null; peakInfo = null;
-  rt_t.textContent = '0.000'; rt_x.textContent = '0.000'; rt_y.textContent = '0.000';
-  rt_v.textContent = '0.000'; rt_vx.textContent = '0.000'; rt_vy.textContent = '0.000';
-  rt_ax.textContent = '0.000'; rt_ay.textContent = '0.000';
-  sum_time.textContent = '—'; sum_hmax.textContent = '—'; sum_range.textContent = '—';
-  sum_imp_v.textContent = '—'; sum_imp_angle.textContent = '—'; sum_tpeak.textContent = '—';
-  drawStaticStage();
-  [ctxV,ctxA,ctxS,ctxP].forEach(c=>{ c.clearRect(0,0,c.canvas.width,c.canvas.height); });
-}
-function startSim(){
-  params.mode = modeSelect.value;
-  params.v0 = parseFloat(v0Input.value) || 0;
-  params.angleDeg = parseFloat(angleInput.value) || 0;
-  params.h0 = parseFloat(h0Input.value) || 0;
-  params.g = parseFloat(gInput.value) || 9.81;
-  speedFactor = parseFloat(speedRange.value) || 1.0;
-
-  impactTime = computeImpactTime(params);
-  peakInfo = computePeak(params);
-  preparePredicted();
-
-  // initial trace
-  trace = [stateAt(0, params)];
-  // summary
-  sum_tpeak.textContent = (peakInfo && peakInfo.tPeak>0) ? fmt(peakInfo.tPeak) + ' s' : '—';
-  sum_hmax.textContent = (peakInfo && peakInfo.hMax!==undefined) ? fmt(peakInfo.hMax) + ' m' : '—';
-  if (impactTime !== null){
-    const imp = computeImpactDetails(params, impactTime);
-    sum_time.textContent = fmt(impactTime) + ' s';
-    sum_range.textContent = fmt(imp.xLand) + ' m';
-    sum_imp_v.textContent = fmt(imp.impactSpeed) + ' m/s';
-    sum_imp_angle.textContent = fmt(imp.impactAngle) + '°';
-  } else {
-    sum_time.textContent = 'Çarpma yok';
-  }
-
-  running = true; paused = false;
-  simTime = 0;
-  lastFrame = performance.now();
-  requestAnimationFrame(simLoop);
-}
-function simLoop(now){
-  if (!running) return;
-  const dtReal = (now - lastFrame) / 1000;
-  lastFrame = now;
-  if (!paused){
-    simTime += dtReal * speedFactor;
-    if (simTime > params.maxSimTime){ running = false; finalizeSim(); return; }
-    const s = stateAt(simTime, params);
-    trace.push(s);
-
-    // update readouts
-    rt_t.textContent = fmt(simTime,4);
-    rt_x.textContent = fmt(s.x);
-    rt_y.textContent = fmt(s.y);
-    rt_vx.textContent = fmt(s.vx);
-    rt_vy.textContent = fmt(s.vy);
-    rt_v.textContent = fmt(s.speed);
-    rt_ax.textContent = fmt(s.ax);
-    rt_ay.textContent = fmt(s.ay);
-
-    // stop on impact
-    if (s.y <= 0 && simTime > 1e-6){
-      running = false;
-      finalizeSim();
-      drawStaticStage();
-      drawAllGraphs();
-      return;
+    // Özet hesaplamaları
+    const flightTime = produced[produced.length-1][0];
+    // maksimum yükseklik
+    let maxH = -Infinity;
+    let timeToPeak = 0;
+    for (const r of produced) {
+      if (r[2] > maxH) { maxH = r[2]; timeToPeak = r[0]; }
     }
+    // menzil (x at impact)
+    const range = produced[produced.length-1][1];
+    // çarpma hızı ve açısı
+    const last = produced[produced.length-1];
+    const impactSpeed = last[5];
+    const impactAngleRad = Math.atan2(last[4], last[3]); // vy, vx
+    const impactAngleDeg = impactAngleRad * 180.0 / Math.PI;
+
+    // Konsol ve özet kutusu güncelle
+    summaryBox.innerHTML = '';
+    const sHtml = document.createElement('div');
+    sHtml.innerHTML = '<p><strong>Uçuş süresi:</strong> ' + formatNum(flightTime,4) + ' s</p>'
+      + '<p><strong>Maksimum yükseklik:</strong> ' + formatNum(maxH,4) + ' m</p>'
+      + '<p><strong>Menzil (x):</strong> ' + formatNum(range,4) + ' m</p>'
+      + '<p><strong>Çarpma hızı:</strong> ' + formatNum(impactSpeed,4) + ' m/s</p>'
+      + '<p><strong>Çarpma açısı:</strong> ' + formatNum(impactAngleDeg,3) + ' °</p>'
+      + '<p><strong>Zaman tepe:</strong> ' + formatNum(timeToPeak,4) + ' s</p>'
+      + '<p><strong>Toplam satır:</strong> ' + produced.length + '</p>';
+    summaryBox.appendChild(sHtml);
+
+    // İlk 10 ve son 10 satırı tablo olarak göster
+    function makeTableFromRows(rows) {
+      const tbl = document.createElement('table');
+      const thead = document.createElement('thead');
+      thead.innerHTML = '<tr><th>t (s)</th><th>x (m)</th><th>y (m)</th><th>vx (m/s)</th><th>vy (m/s)</th><th>|V| (m/s)</th><th>ax</th><th>ay</th></tr>';
+      tbl.appendChild(thead);
+      const tbody = document.createElement('tbody');
+      for (const r of rows) {
+        const tr = document.createElement('tr');
+        for (let i=0;i<r.length;i++) {
+          const td = document.createElement('td');
+          td.textContent = formatNum(r[i],5);
+          tr.appendChild(td);
+        }
+        tbody.appendChild(tr);
+      }
+      tbl.appendChild(tbody);
+      return tbl;
+    }
+
+    const first10 = produced.slice(0, Math.min(10, produced.length));
+    const last10 = produced.slice(Math.max(0, produced.length-10));
+    first10Box.innerHTML = '';
+    last10Box.innerHTML = '';
+    first10Box.appendChild(makeTableFromRows(first10));
+    last10Box.appendChild(makeTableFromRows(last10));
+
+    // Grafik verilerini hazırla
+    const tArr = produced.map(r => r[0]);
+    const xArr = produced.map(r => r[1]);
+    const yArr = produced.map(r => r[2]);
+    const vxArr = produced.map(r => r[3]);
+    const vyArr = produced.map(r => r[4]);
+    const speedArr = produced.map(r => r[5]);
+    const axArr = produced.map(r => r[6]);
+    const ayArr = produced.map(r => r[7]);
+
+    // Pozisyon grafiği: x(t) ve y(t) ayrı altgrafiklerde
+    const posLayout = {
+      title: 'Konum - Zaman',
+      grid: {rows:2, columns:1, pattern:'independent'},
+      height: 320,
+      margin: {t:40, l:60, r:20, b:40},
+      xaxis: {title:'t (s)', showgrid:true, zeroline:false},
+      xaxis2: {title:'t (s)', showgrid:true, zeroline:false},
+      yaxis: {title:'x (m)', showgrid:true},
+      yaxis2: {title:'y (m)', showgrid:true}
+    };
+    const posData = [
+      { x: tArr, y: xArr, name:'x(t) (m)', xaxis:'x1', yaxis:'y1', mode:'lines+markers', marker:{size:4}, line:{width:2} },
+      { x: tArr, y: yArr, name:'y(t) (m)', xaxis:'x2', yaxis:'y2', mode:'lines+markers', marker:{size:4}, line:{width:2} }
+    ];
+    Plotly.newPlot('posPlot', posData, posLayout, {responsive:true});
+
+    // Hız grafiği: |V|(t), vx, vy
+    const speedLayout = {
+      title: 'Hız - Zaman',
+      height: 300,
+      margin: {t:40, l:60, r:20, b:40},
+      xaxis: {title:'t (s)', showgrid:true},
+      yaxis: {title:'Hız (m/s)', showgrid:true}
+    };
+    const speedData = [
+      { x: tArr, y: speedArr, name:'|V|(t) (m/s)', mode:'lines+markers', marker:{size:4}, line:{width:2, color:'#0b69ff'} },
+      { x: tArr, y: vxArr, name:'vx (m/s)', mode:'lines+markers', marker:{size:3}, line:{width:1.5, dash:'dash', color:'#ff7f0e'} },
+      { x: tArr, y: vyArr, name:'vy (m/s)', mode:'lines+markers', marker:{size:3}, line:{width:1.5, dash:'dot', color:'#2ca02c'} }
+    ];
+    Plotly.newPlot('speedPlot', speedData, speedLayout, {responsive:true});
+
+    // İvme grafiği
+    const accLayout = {
+      title: 'İvme - Zaman',
+      height: 240,
+      margin: {t:40, l:60, r:20, b:40},
+      xaxis: {title:'t (s)', showgrid:true},
+      yaxis: {title:'İvme (m/s²)', showgrid:true}
+    };
+    const accData = [
+      { x: tArr, y: axArr, name:'ax (m/s²)', mode:'lines+markers', marker:{size:4}, line:{width:2, color:'#8a2be2'} },
+      { x: tArr, y: ayArr, name:'ay (m/s²)', mode:'lines+markers', marker:{size:4}, line:{width:2, color:'#d62728'} }
+    ];
+    Plotly.newPlot('accPlot', accData, accLayout, {responsive:true});
+
+    // Hover ve eksen sayı biçimlendirmesi: tüm grafiklerde eksenlerde sayılar görünür (Plotly varsayılan)
+    // Son olarak kullanıcıya bilgi ver
+    console.log('Simülasyon tamamlandı. Satır sayısı:', produced.length);
   }
 
-  drawStaticStage();
-  drawAllGraphs();
-  requestAnimationFrame(simLoop);
-}
-function finalizeSim(){
-  if (impactTime === null){
-    const land = trace.slice().reverse().find(d=>d.y<=0);
-    if (land) impactTime = land.t;
-  }
-  if (impactTime !== null){
-    const imp = computeImpactDetails(params, impactTime);
-    sum_time.textContent = fmt(impactTime) + ' s';
-    sum_range.textContent = fmt(imp.xLand) + ' m';
-    sum_imp_v.textContent = fmt(imp.impactSpeed) + ' m/s';
-    sum_imp_angle.textContent = fmt(imp.impactAngle) + '°';
-  } else {
-    sum_time.textContent = 'Çarpma yok';
-  }
-}
-
-/* Draw graphs from trace */
-function drawAllGraphs(){
-  const times = trace.map(d=>d.t);
-  const speeds = trace.map(d=>d.speed);
-  const accs = trace.map(d=>d.ay);
-  const xs = trace.map(d=>d.x);
-  const ys = trace.map(d=>d.y);
-
-  drawLineGraph(vCanvas, ctxV, times, speeds, '#4ee6a8', 'Hız - Zaman |V|(m/s)', simTime);
-  drawLineGraph(aCanvas, ctxA, times, accs, '#ff7b7b', 'İvme - Zaman ay (m/s²)', simTime);
-  drawLineGraph(sCanvas, ctxS, times, xs, '#ffd166', 'Mesafe - Zaman x(t) (m)', simTime);
-  // position-time combined
-  drawPositionGraph(posCanvas, ctxP, times, xs, ys, simTime);
-}
-
-/* Event listeners */
-startBtn.addEventListener('click', ()=>{ if (!running) startSim(); else { paused=false; lastFrame=performance.now(); requestAnimationFrame(simLoop); }});
-pauseBtn.addEventListener('click', ()=>{ paused = !paused; pauseBtn.textContent = paused ? 'Devam' : 'Duraklat'; });
-resetBtn.addEventListener('click', resetSim);
-speedRange.addEventListener('input', ()=>{ speedFactor = parseFloat(speedRange.value); });
-
-modeSelect.addEventListener('change', ()=>{
-  const m = modeSelect.value;
-  modeBadgeSim.textContent = 'Mod: ' + (m==='oblique'?'Eğik Atış': m==='horizontal'?'Yatay Atış': m==='up'?'Yukarı Düşey':'Aşağı Düşey');
-  angleInput.disabled = (m !== 'oblique');
-});
-
-toggles.forEach(btn=> btn.addEventListener('click', ()=> btn.classList.toggle('active')));
-
-/* Initialize */
-resetSim();
-drawStaticStage();
-resizeAll();
-</script>
+  // Sayfa yüklendiğinde varsayılan simülasyonu çalıştır
+  window.addEventListener('load', () => {
+    // Otomatik çalıştırma istenirse uncomment:
+    // document.getElementById('runBtn').click();
+  });
+  </script>
 </body>
 </html>

@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<title>Yeni Yıl Animasyonu ve Kinematik Grafikleri</title>
+<style>
+  :root{--bg:#071022;--accent:#ffd700}
+  html,body{height:100%;margin:0;background:var(--bg);color:#fff;font-family:Inter,Arial}
+  .top {
+    width:100%;display:flex;flex-direction:column;align-items:center;gap:12px;padding-top:18px;
+  }
+  .headline {
+    font-size:36px;color:var(--accent);text-shadow:0 0 18px rgba(255,215,0,.6);
+    letter-spacing:1px;
+  }
+  .stage {
+    width:100%;max-width:980px;height:260px;position:relative;overflow:hidden;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .year {
+    font-size:120px;font-weight:800;line-height:1;display:flex;gap:6px;
+    user-select:none;
+  }
+  .digit {
+    display:inline-block; width:80px;text-align:center;
+    transform-origin:center center;
+  }
+  /* fade out for 5 */
+  .fade-out { animation: fadeOut 0.9s forwards; }
+  @keyframes fadeOut { to { opacity:0; transform: translateY(-40px) scale(.6); } }
+
+  /* scale-in for 6 */
+  .scale-in { animation: scaleIn 0.9s forwards; }
+  @keyframes scaleIn { from { opacity:0; transform: translateY(40px) scale(.4); } to { opacity:1; transform: translateY(0) scale(1); } }
+
+  /* canvases for graphs */
+  .graphs { width:100%;max-width:980px;margin:18px auto 40px; display:grid;grid-template-columns:1fr;gap:12px; }
+  canvas.graph { width:100%; height:160px; background:#071022; border:1px solid rgba(255,255,255,.06); }
+
+  /* confetti pieces */
+  .confetti { position:fixed;pointer-events:none;z-index:60;will-change:transform,opacity; }
+
+  /* snow canvas sits behind everything */
+  #snow { position:fixed;left:0;top:0;width:100%;height:100%;z-index:0;pointer-events:none; }
+  /* stage above snow */
+  .stage, .top, .graphs { position:relative; z-index:10; }
+  footer { text-align:center;color:#bbb;font-size:13px;margin-bottom:18px; }
+</style>
+</head>
+<body>
+  <canvas id="snow"></canvas>
+
+  <div class="top">
+    <div class="headline">Yeni yılın kutlu olsun amk</div>
+
+    <div class="stage" id="stage">
+      <div class="year" id="year">
+        <div class="digit" id="d2">2</div>
+        <div class="digit" id="d0">0</div>
+        <div class="digit" id="d2b">2</div>
+        <div class="digit" id="d5">5</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="graphs">
+    <canvas id="vGraph" class="graph"></canvas>
+    <canvas id="aGraph" class="graph"></canvas>
+    <canvas id="sGraph" class="graph"></canvas>
+  </div>
+
+  <footer>Animasyon ve grafikler gerçek zamanlı hesaplanır</footer>
+
+<script>
+/* ---------- AYARLAR ---------- */
+const TOTAL_DURATION = 4.0; // s, tüm animasyonun örnekleme süresi
+const FPS = 60;
+const SAMPLES = Math.ceil(TOTAL_DURATION * FPS);
+
+const stage = document.getElementById('stage');
+const d5 = document.getElementById('d5');
+const yearEl = document.getElementById('year');
+
+/* Kinematik model
+   - Phase A (0 -> t1): 5 rakamı sağa doğru ivmelenerek hareket eder ve fade olur.
+   - Phase B (t1 -> t2): 6 rakamı soldan gelir, scale-in ile yerleşir.
+   - Her iki faz için pozisyon, hız, ivme sayısal olarak hesaplanır.
+*/
+const t1 = 1.0; // 5'in yok olma süresi başlangıçtan itibaren (s)
+const t2 = 2.2; // 6'nın tam yerleşme süresi (s)
+const totalT = TOTAL_DURATION;
+
+/* Fiziksel parametreler (ekran ölçeğine göre)
+   - Birim: px
+*/
+const startX = 0; // referans merkez
+const digitWidth = 80;
+const targetOffset = 0; // 6'nın hedef pozisyonu (relative)
+const screenW = Math.min(window.innerWidth, 980);
+
+/* Veri dizileri */
+let timeArr = [], posArr = [], velArr = [], accArr = [];
+
+/* Helper easing (smoothstep) */
+function smoothstep(t){ return t*t*(3-2*t); }
+
+/* Simülasyon: örnekleme yap */
+for(let i=0;i<=SAMPLES;i++){
+  const t = (i/SAMPLES) * totalT;
+  timeArr.push(t);
+
+  // default values
+  let x = 0, v = 0, a = 0;
+
+  if(t <= t1){
+    // Phase A: 5 kaybolurken sağa ivmeleniyor ve fade
+    // Basit model: sabit ivme a0, başlangıç v0=0
+    const a0 = 220; // px/s^2 (ayarla)
+    a = a0;
+    v = a0 * t;
+    x = 0.5 * a0 * t * t;
+  } else if(t <= t2){
+    // Phase B: 6 geliyor. Model: başlangıç soldan, ease-in-out hareket
+    const tb = (t - t1) / (t2 - t1); // 0..1
+    const eased = smoothstep(tb);
+    // hedef mesafe: ekranın ortasına gelene kadar -200px -> 0
+    const startPos = -220;
+    const endPos = 0;
+    x = startPos + (endPos - startPos) * eased;
+    // türevler yaklaşık
+    const dt = 1 / FPS;
+    // numeric derivative for v and a (central difference approx)
+    // approximate using small delta
+    const eps = 1e-4;
+    const tplus = Math.min(t+eps, totalT);
+    const tminus = Math.max(t-eps, 0);
+    const tbp = (tplus - t1) / (t2 - t1);
+    const tbm = (tminus - t1) / (t2 - t1);
+    const xp = startPos + (endPos - startPos) * smoothstep(Math.max(0,Math.min(1,tbp)));
+    const xm = startPos + (endPos - startPos) * smoothstep(Math.max(0,Math.min(1,tbm)));
+    v = (xp - xm) / (tplus - tminus);
+    // acceleration numeric
+    const tpp = Math.min(t+2*eps, totalT);
+    const tmm = Math.max(t-2*eps, 0);
+    const xpp = startPos + (endPos - startPos) * smoothstep(Math.max(0,Math.min(1,(tpp - t1)/(t2 - t1))));
+    const xmm = startPos + (endPos - startPos) * smoothstep(Math.max(0,Math.min(1,(tmm - t1)/(t2 - t1))));
+    a = (xpp - 2*x + xmm) / ((2*eps)*(2*eps));
+  } else {
+    // Sonrası: sabit pozisyon
+    x = 0;
+    v = 0;
+    a = 0;
+  }
+
+  posArr.push(x);
+  velArr.push(v);
+  accArr.push(a);
+}
+
+/* ---------- GRAFİK ÇİZİMİ ---------- */
+function drawGraph(canvas, data, color, label){
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width = canvas.clientWidth * devicePixelRatio;
+  const h = canvas.height = canvas.clientHeight * devicePixelRatio;
+  ctx.clearRect(0,0,w,h);
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+
+  // margins
+  const mw = 40, mh = 18;
+  const cw = canvas.clientWidth - mw*2;
+  const ch = canvas.clientHeight - mh*2;
+
+  // axes
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(mw, mh);
+  ctx.lineTo(mw, mh+ch);
+  ctx.lineTo(mw+cw, mh+ch);
+  ctx.stroke();
+
+  // label
+  ctx.fillStyle = '#ddd';
+  ctx.font = '12px Inter, Arial';
+  ctx.fillText(label, mw, mh-4);
+
+  // scale data
+  const maxVal = Math.max(...data.map(v=>Math.abs(v))) || 1;
+  const minVal = Math.min(...data) || -maxVal;
+  const range = maxVal - minVal || 1;
+
+  ctx.beginPath();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  for(let i=0;i<data.length;i++){
+    const t = i/(data.length-1);
+    const x = mw + t * cw;
+    // map value to vertical (invert y)
+    const y = mh + ch - ((data[i] - minVal) / range) * ch;
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+
+  // draw zero line if in range
+  if(minVal < 0 && maxVal > 0){
+    const y0 = mh + ch - ((0 - minVal) / range) * ch;
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(mw, y0); ctx.lineTo(mw+cw, y0); ctx.stroke();
+  }
+}
+
+/* initial draw */
+const vCanvas = document.getElementById('vGraph');
+const aCanvas = document.getElementById('aGraph');
+const sCanvas = document.getElementById('sGraph');
+
+/* compute displacement s(t) by integrating velocity */
+let sArr = [];
+let s = 0;
+for(let i=0;i<velArr.length;i++){
+  const dt = totalT / (velArr.length-1);
+  s += velArr[i] * dt;
+  sArr.push(s);
+}
+
+/* draw once */
+drawGraph(vCanvas, velArr, '#4ee6a8', 'Hız - Zaman (px/s)');
+drawGraph(aCanvas, accArr, '#ff7b7b', 'İvme - Zaman (px/s²)');
+drawGraph(sCanvas, sArr, '#7fb3ff', 'Mesafe - Zaman (px)');
+
+/* ---------- ANİMASYON: DOM ÜZERİNDE GÖRÜNÜM ---------- */
+function animateDigits(){
+  // 1) 5 için hareket ve fade: sağa doğru ivmelenme
+  const five = d5;
+  const startLeft = five.offsetLeft;
+  // apply transform via requestAnimationFrame using same sampling
+  let frame = 0;
+  function step(){
+    const t = frame / SAMPLES * totalT;
+    // update DOM transforms according to posArr
+    // posArr is relative px; scale to visible movement
+    const idx = Math.min(Math.floor((t/totalT) * posArr.length), posArr.length-1);
+    const x = posArr[idx];
+    // For 5: move right and fade during phase A
+    if(t <= t1){
+      five.style.transform = `translateX(${x}px)`;
+      // fade proportional to t/t1
+      const op = Math.max(0, 1 - (t / t1));
+      five.style.opacity = op;
+    } else {
+      // ensure hidden after phase
+      five.style.opacity = 0;
+      five.style.transform = `translateX(${posArr[posArr.length-1]}px)`;
+    }
+
+    // For 6: create element when phase B starts
+    if(t >= t1 && !document.getElementById('d6')){
+      const d6 = document.createElement('div');
+      d6.className = 'digit';
+      d6.id = 'd6';
+      d6.textContent = '6';
+      d6.style.opacity = 0;
+      d6.style.transform = 'translateX(-220px) scale(.4)';
+      // replace the old 5 with 6 in DOM order
+      yearEl.replaceChild(d6, five);
+    }
+
+    // animate 6 during phase B
+    const d6el = document.getElementById('d6');
+    if(d6el){
+      if(t <= t2){
+        const tb = Math.max(0, Math.min(1, (t - t1) / (t2 - t1)));
+        const eased = smoothstep(tb);
+        const startPos = -220;
+        const endPos = 0;
+        const curX = startPos + (endPos - startPos) * eased;
+        d6el.style.transform = `translateX(${curX}px) scale(${0.4 + 0.6*eased})`;
+        d6el.style.opacity = eased;
+      } else {
+        d6el.style.transform = 'translateX(0px) scale(1)';
+        d6el.style.opacity = 1;
+      }
+    }
+
+    frame++;
+    if(frame <= SAMPLES) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+/* ---------- KONFETİ ---------- */
+function launchConfetti(count=220){
+  for(let i=0;i<count;i++){
+    const el = document.createElement('div');
+    el.className = 'confetti';
+    const size = 6 + Math.random()*10;
+    el.style.width = size + 'px';
+    el.style.height = (size*1.4) + 'px';
+    el.style.left = Math.random()*window.innerWidth + 'px';
+    el.style.top = (-50 - Math.random()*200) + 'px';
+    el.style.background = `hsl(${Math.random()*360},80%,60%)`;
+    el.style.borderRadius = (Math.random()>0.6? '50%':'2px');
+    el.style.opacity = 0.95;
+    el.style.transform = `rotate(${Math.random()*360}deg)`;
+    el.style.transition = `transform ${2+Math.random()*2}s linear, top ${2+Math.random()*2}s linear, opacity 1s linear`;
+    document.body.appendChild(el);
+    // animate to bottom
+    setTimeout(()=> {
+      el.style.top = (window.innerHeight + 60) + 'px';
+      el.style.transform = `translateX(${(Math.random()-0.5)*200}px) rotate(${Math.random()*720}deg)`;
+      el.style.opacity = 0.9;
+    }, 20 + Math.random()*300);
+
+    // remove later
+    setTimeout(()=> el.remove(), 5000 + Math.random()*2000);
+  }
+}
+
+/* ---------- KAR EFEKTI ---------- */
+const snow = document.getElementById('snow');
+const sctx = snow.getContext('2d');
+let flakes = [];
+function resizeSnow(){
+  snow.width = window.innerWidth;
+  snow.height = window.innerHeight;
+}
+window.addEventListener('resize', ()=>{ resizeSnow(); });
+resizeSnow();
+for(let i=0;i<160;i++){
+  flakes.push({
+    x: Math.random()*snow.width,
+    y: Math.random()*snow.height,
+    r: 1 + Math.random()*3,
+    s: 0.2 + Math.random()*1.2,
+    drift: (Math.random()-0.5)*0.6
+  });
+}
+function updateSnow(){
+  sctx.clearRect(0,0,snow.width,snow.height);
+  sctx.fillStyle = 'rgba(255,255,255,0.9)';
+  for(let f of flakes){
+    f.y += f.s;
+    f.x += f.drift;
+    if(f.y > snow.height + 10){ f.y = -10; f.x = Math.random()*snow.width; }
+    if(f.x > snow.width + 10) f.x = -10;
+    sctx.beginPath();
+    sctx.arc(f.x, f.y, f.r, 0, Math.PI*2);
+    sctx.fill();
+  }
+  requestAnimationFrame(updateSnow);
+}
+updateSnow();
+
+/* ---------- BAŞLATMA ---------- */
+setTimeout(()=>{
+  // başlat animasyon ve konfeti
+  animateDigits();
+  setTimeout(()=> launchConfetti(260), 1200);
+  // yeniden çizimler için grafikleri periyodik güncelle
+  let redrawCount = 0;
+  const redrawInterval = setInterval(()=>{
+    // (Grafikler statik hesaplandı ama istersen animasyonlu güncelleme eklenebilir)
+    drawGraph(vCanvas, velArr, '#4ee6a8', 'Hız - Zaman (px/s)');
+    drawGraph(aCanvas, accArr, '#ff7b7b', 'İvme - Zaman (px/s²)');
+    drawGraph(sCanvas, sArr, '#7fb3ff', 'Mesafe - Zaman (px)');
+    redrawCount++;
+    if(redrawCount>10) clearInterval(redrawInterval);
+  }, 200);
+}, 600);
+
+/* Responsive: canvas yeniden çizimleri */
+window.addEventListener('resize', ()=> {
+  drawGraph(vCanvas, velArr, '#4ee6a8', 'Hız - Zaman (px/s)');
+  drawGraph(aCanvas, accArr, '#ff7b7b', 'İvme - Zaman (px/s²)');
+  drawGraph(sCanvas, sArr, '#7fb3ff', 'Mesafe - Zaman (px)');
+});
+</script>
+</body>
+</html>

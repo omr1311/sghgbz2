@@ -2,379 +2,830 @@
 <html lang="tr">
 <head>
 <meta charset="utf-8" />
-<title>Yeni Yıl Animasyonu ve Kinematik Grafikleri</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Atış Hareketleri Simülatörü - Gerçekçi</title>
 <style>
-  :root{--bg:#071022;--accent:#ffd700}
-  html,body{height:100%;margin:0;background:var(--bg);color:#fff;font-family:Inter,Arial}
-  .top {
-    width:100%;display:flex;flex-direction:column;align-items:center;gap:12px;padding-top:18px;
+  :root{
+    --bg:#071022; --panel:#0f1724; --accent:#ffd166; --muted:#9aa7bf;
+    --card:#0b1220; --glass: rgba(255,255,255,0.03);
   }
-  .headline {
-    font-size:36px;color:var(--accent);text-shadow:0 0 18px rgba(255,215,0,.6);
-    letter-spacing:1px;
-  }
+  html,body{height:100%;margin:0;background:linear-gradient(180deg,#041028 0%, #071022 60%);color:#e6eef8;font-family:Inter,Segoe UI,Arial,sans-serif}
+  .container{max-width:1200px;margin:18px auto;padding:12px;display:grid;grid-template-columns:1fr 380px;gap:16px}
+  header{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:12px}
+  header h1{margin:0;font-size:20px;color:var(--accent);letter-spacing:0.6px}
+  header .subtitle{color:var(--muted);font-size:13px}
   .stage {
-    width:100%;max-width:980px;height:260px;position:relative;overflow:hidden;
-    display:flex;align-items:center;justify-content:center;
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border-radius:10px;padding:12px;box-shadow:0 6px 18px rgba(0,0,0,0.6);
+    display:flex;flex-direction:column;gap:10px;align-items:center;justify-content:center;
+    min-height:420px;position:relative;overflow:hidden;
   }
-  .year {
-    font-size:120px;font-weight:800;line-height:1;display:flex;gap:6px;
-    user-select:none;
+  .controls {
+    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border-radius:10px;padding:12px;box-shadow:0 6px 18px rgba(0,0,0,0.6);
+    display:flex;flex-direction:column;gap:10px;height:fit-content;
   }
-  .digit {
-    display:inline-block; width:80px;text-align:center;
-    transform-origin:center center;
+  label{font-size:13px;color:var(--muted);display:block;margin-bottom:6px}
+  .row{display:flex;gap:8px;align-items:center}
+  .field{display:flex;flex-direction:column;gap:6px}
+  input[type="number"], select, input[type="range"]{
+    background:var(--card);border:1px solid rgba(255,255,255,0.04);color:#eaf2ff;padding:8px;border-radius:6px;
+    font-size:14px;outline:none;width:100%;
   }
-  /* fade out for 5 */
-  .fade-out { animation: fadeOut 0.9s forwards; }
-  @keyframes fadeOut { to { opacity:0; transform: translateY(-40px) scale(.6); } }
-
-  /* scale-in for 6 */
-  .scale-in { animation: scaleIn 0.9s forwards; }
-  @keyframes scaleIn { from { opacity:0; transform: translateY(40px) scale(.4); } to { opacity:1; transform: translateY(0) scale(1); } }
-
-  /* canvases for graphs */
-  .graphs { width:100%;max-width:980px;margin:18px auto 40px; display:grid;grid-template-columns:1fr;gap:12px; }
-  canvas.graph { width:100%; height:160px; background:#071022; border:1px solid rgba(255,255,255,.06); }
-
-  /* confetti pieces */
-  .confetti { position:fixed;pointer-events:none;z-index:60;will-change:transform,opacity; }
-
-  /* snow canvas sits behind everything */
-  #snow { position:fixed;left:0;top:0;width:100%;height:100%;z-index:0;pointer-events:none; }
-  /* stage above snow */
-  .stage, .top, .graphs { position:relative; z-index:10; }
-  footer { text-align:center;color:#bbb;font-size:13px;margin-bottom:18px; }
+  input[type="range"]{height:28px}
+  .btns{display:flex;gap:8px;flex-wrap:wrap}
+  button{background:linear-gradient(180deg,var(--accent),#ffb84d);border:none;padding:8px 12px;border-radius:8px;color:#071022;font-weight:700;cursor:pointer}
+  button.secondary{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted);font-weight:600}
+  .readouts{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+  .readout{background:var(--glass);padding:8px;border-radius:8px;font-size:13px}
+  .summary{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:10px;border-radius:8px;font-size:13px;color:var(--muted)}
+  .toggles{display:flex;gap:8px;flex-wrap:wrap}
+  .toggle{background:transparent;border:1px solid rgba(255,255,255,0.04);padding:6px 8px;border-radius:6px;color:var(--muted);cursor:pointer}
+  .toggle.active{background:rgba(255,255,255,0.04);color:#fff}
+  .graphs{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}
+  canvas.graph{width:100%;height:180px;border-radius:8px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005));box-shadow:inset 0 0 0 1px rgba(255,255,255,0.02)}
+  .footer{grid-column:1/-1;text-align:center;color:var(--muted);font-size:12px;margin-top:8px}
+  /* Stage inner */
+  .stage-canvas{width:100%;height:100%;display:block;border-radius:8px;background:linear-gradient(180deg,#062034 0%, #071022 100%);box-shadow:inset 0 0 60px rgba(0,0,0,0.6)}
+  .marker{position:absolute;pointer-events:none}
+  .badge{position:absolute;right:12px;top:12px;background:rgba(0,0,0,0.35);padding:6px 8px;border-radius:6px;color:var(--muted);font-size:13px}
+  /* Responsive */
+  @media (max-width:1100px){.container{grid-template-columns:1fr;}.graphs{grid-template-columns:1fr}}
+  table{width:100%;border-collapse:collapse;color:#eaf2ff;font-size:13px}
+  td,th{padding:6px;border-bottom:1px dashed rgba(255,255,255,0.03);text-align:left}
+  .small{font-size:12px;color:var(--muted)}
 </style>
 </head>
 <body>
-  <canvas id="snow"></canvas>
-
-  <div class="top">
-    <div class="headline">Yeni yılın kutlu olsun amk</div>
-
-    <div class="stage" id="stage">
-      <div class="year" id="year">
-        <div class="digit" id="d2">2</div>
-        <div class="digit" id="d0">0</div>
-        <div class="digit" id="d2b">2</div>
-        <div class="digit" id="d5">5</div>
+  <div class="container">
+    <header>
+      <div>
+        <h1>Atış Hareketleri Simülatörü</h1>
+        <div class="subtitle">Gerçekçi kinematik hesaplar • 4 mod • Gerçek zamanlı grafikler</div>
       </div>
+      <div class="small">Varsayılan: v₀=25 m/s, θ=45°, h₀=0 m, g=9.81 m/s²</div>
+    </header>
+
+    <!-- Sol: Görsel sahne -->
+    <section class="stage" id="stagePanel">
+      <div class="badge" id="modeBadge">Mod: Eğik Atış</div>
+      <canvas id="stageCanvas" class="stage-canvas"></canvas>
+      <!-- Markers (max height, landing) -->
+      <div id="markerMax" class="marker"></div>
+      <div id="markerLand" class="marker"></div>
+    </section>
+
+    <!-- Sağ: Kontroller -->
+    <aside class="controls">
+      <div class="field">
+        <label>Atış tipi</label>
+        <select id="modeSelect">
+          <option value="oblique">Eğik Atış</option>
+          <option value="horizontal">Yatay Atış</option>
+          <option value="up">Yukarı Düşey</option>
+          <option value="down">Aşağı Düşey</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <div class="field" style="flex:1">
+          <label>İlk hız v₀ (m/s)</label>
+          <input id="v0" type="number" step="0.1" value="25" />
+        </div>
+        <div class="field" style="width:110px">
+          <label>Açı θ (derece)</label>
+          <input id="angle" type="number" step="0.1" value="45" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="field" style="flex:1">
+          <label>Başlangıç yüksekliği h₀ (m)</label>
+          <input id="h0" type="number" step="0.1" value="0" />
+        </div>
+        <div class="field" style="width:110px">
+          <label>g (m/s²)</label>
+          <input id="g" type="number" step="0.01" value="9.81" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="btns" style="flex:1">
+          <button id="startBtn">Başlat</button>
+          <button id="pauseBtn" class="secondary">Duraklat</button>
+          <button id="resetBtn" class="secondary">Sıfırla</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Hız çarpanı (Adım ms ile çarpılır)</label>
+        <input id="speedRange" type="range" min="0.1" max="5" step="0.1" value="1" />
+      </div>
+
+      <div class="readouts">
+        <div class="readout">t: <span id="rt_t">0.000</span> s</div>
+        <div class="readout">x: <span id="rt_x">0.000</span> m</div>
+        <div class="readout">y: <span id="rt_y">0.000</span> m</div>
+        <div class="readout">|V|: <span id="rt_v">0.000</span> m/s</div>
+        <div class="readout">Vx: <span id="rt_vx">0.000</span> m/s</div>
+        <div class="readout">Vy: <span id="rt_vy">0.000</span> m/s</div>
+        <div class="readout">ax: <span id="rt_ax">0.000</span> m/s²</div>
+        <div class="readout">ay: <span id="rt_ay">0.000</span> m/s²</div>
+      </div>
+
+      <div class="field">
+        <label>Görsel seçenekler</label>
+        <div class="toggles">
+          <button class="toggle active" data-toggle="trace">İz izi</button>
+          <button class="toggle active" data-toggle="pred">Tahmini yol</button>
+          <button class="toggle active" data-toggle="vel">Hız vektörü</button>
+          <button class="toggle" data-toggle="grid">Izgara</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Veri ve özet</label>
+        <div class="summary" id="summaryPanel">
+          <table>
+            <tbody>
+              <tr><th>Uçuş süresi</th><td id="sum_time">—</td></tr>
+              <tr><th>Maks yükseklik</th><td id="sum_hmax">—</td></tr>
+              <tr><th>Meniz (range)</th><td id="sum_range">—</td></tr>
+              <tr><th>Çarpma hızı</th><td id="sum_imp_v">—</td></tr>
+              <tr><th>Çarpma açısı</th><td id="sum_imp_angle">—</td></tr>
+              <tr><th>Zaman tepe</th><td id="sum_tpeak">—</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="row">
+        <div style="flex:1">
+          <button id="copyCsv" class="secondary">CSV Kopyala</button>
+        </div>
+        <div style="width:140px">
+          <button id="downloadCsv" class="secondary">CSV İndir</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Grafikleri alt kısım -->
+    <div class="graphs">
+      <canvas id="vGraph" class="graph"></canvas>
+      <canvas id="aGraph" class="graph"></canvas>
+      <canvas id="sGraph" class="graph"></canvas>
     </div>
-  </div>
 
-  <div class="graphs">
-    <canvas id="vGraph" class="graph"></canvas>
-    <canvas id="aGraph" class="graph"></canvas>
-    <canvas id="sGraph" class="graph"></canvas>
+    <div class="footer">Grafikler: Hız-Zaman, İvme-Zaman, Mesafe-Zaman (y ve x seçeneği). Tüm hesaplar analitik formüllere dayanır.</div>
   </div>
-
-  <footer>Animasyon ve grafikler gerçek zamanlı hesaplanır</footer>
 
 <script>
-/* ---------- AYARLAR ---------- */
-const TOTAL_DURATION = 4.0; // s, tüm animasyonun örnekleme süresi
-const FPS = 60;
-const SAMPLES = Math.ceil(TOTAL_DURATION * FPS);
-
-const stage = document.getElementById('stage');
-const d5 = document.getElementById('d5');
-const yearEl = document.getElementById('year');
-
-/* Kinematik model
-   - Phase A (0 -> t1): 5 rakamı sağa doğru ivmelenerek hareket eder ve fade olur.
-   - Phase B (t1 -> t2): 6 rakamı soldan gelir, scale-in ile yerleşir.
-   - Her iki faz için pozisyon, hız, ivme sayısal olarak hesaplanır.
+/*
+  Atış Simülatörü - Türkçe
+  - Analitik formüller kullanılarak pozisyon ve hız hesaplanır.
+  - Gerçek zamanlı grafikler canvas ile çizilir.
+  - Tüm metinler Türkçe.
 */
-const t1 = 1.0; // 5'in yok olma süresi başlangıçtan itibaren (s)
-const t2 = 2.2; // 6'nın tam yerleşme süresi (s)
-const totalT = TOTAL_DURATION;
 
-/* Fiziksel parametreler (ekran ölçeğine göre)
-   - Birim: px
+/* ---------- Yardımcı fonksiyonlar ---------- */
+const $ = id => document.getElementById(id);
+const fmt = (v, sig=3) => {
+  if (!isFinite(v)) return '—';
+  // 3 anlamlı basamak
+  const n = Number(v);
+  if (Math.abs(n) >= 1000 || Math.abs(n) < 0.001) return n.toExponential(sig-1);
+  return Number(n.toPrecision(sig)).toString();
+};
+
+/* ---------- DOM elemanları ---------- */
+const canvasStage = $('stageCanvas');
+const ctxStage = canvasStage.getContext('2d');
+const vCanvas = $('vGraph'), aCanvas = $('aGraph'), sCanvas = $('sGraph');
+const ctxV = vCanvas.getContext('2d'), ctxA = aCanvas.getContext('2d'), ctxS = sCanvas.getContext('2d');
+
+const modeSelect = $('modeSelect'), v0Input = $('v0'), angleInput = $('angle'), h0Input = $('h0'), gInput = $('g');
+const startBtn = $('startBtn'), pauseBtn = $('pauseBtn'), resetBtn = $('resetBtn');
+const speedRange = $('speedRange');
+const rt_t = $('rt_t'), rt_x = $('rt_x'), rt_y = $('rt_y'), rt_v = $('rt_v'), rt_vx = $('rt_vx'), rt_vy = $('rt_vy'), rt_ax = $('rt_ax'), rt_ay = $('rt_ay');
+const sum_time = $('sum_time'), sum_hmax = $('sum_hmax'), sum_range = $('sum_range'), sum_imp_v = $('sum_imp_v'), sum_imp_angle = $('sum_imp_angle'), sum_tpeak = $('sum_tpeak');
+const toggles = document.querySelectorAll('.toggle');
+const modeBadge = $('modeBadge');
+const copyCsvBtn = $('copyCsv'), downloadCsvBtn = $('downloadCsv');
+
+/* ---------- Simülasyon durum ve parametreler ---------- */
+let running = false, paused = false;
+let startTime = 0, simTime = 0; // gerçek zaman ve simülasyon zamanı (s)
+let lastFrame = 0;
+let speedFactor = 1.0;
+let devicePixelRatioVal = window.devicePixelRatio || 1;
+
+let tracePoints = []; // iz izi için zaman serisi
+let csvData = []; // CSV için
+
+// Varsayılan parametreler
+let params = {
+  mode: 'oblique',
+  v0: 25,
+  angleDeg: 45,
+  h0: 0,
+  g: 9.81,
+  maxSimTime: 120 // s
+};
+
+/* ---------- Fiziksel hesaplamalar (analitik) ---------- */
+/*
+  x(t) = x0 + v0x * t
+  y(t) = y0 + v0y * t - 0.5 * g * t^2
+  vx = v0x
+  vy = v0y - g * t
+  Impact time: solve y(t_imp) = 0 (ground) -> quadratic in t
 */
-const startX = 0; // referans merkez
-const digitWidth = 80;
-const targetOffset = 0; // 6'nın hedef pozisyonu (relative)
-const screenW = Math.min(window.innerWidth, 980);
-
-/* Veri dizileri */
-let timeArr = [], posArr = [], velArr = [], accArr = [];
-
-/* Helper easing (smoothstep) */
-function smoothstep(t){ return t*t*(3-2*t); }
-
-/* Simülasyon: örnekleme yap */
-for(let i=0;i<=SAMPLES;i++){
-  const t = (i/SAMPLES) * totalT;
-  timeArr.push(t);
-
-  // default values
-  let x = 0, v = 0, a = 0;
-
-  if(t <= t1){
-    // Phase A: 5 kaybolurken sağa ivmeleniyor ve fade
-    // Basit model: sabit ivme a0, başlangıç v0=0
-    const a0 = 220; // px/s^2 (ayarla)
-    a = a0;
-    v = a0 * t;
-    x = 0.5 * a0 * t * t;
-  } else if(t <= t2){
-    // Phase B: 6 geliyor. Model: başlangıç soldan, ease-in-out hareket
-    const tb = (t - t1) / (t2 - t1); // 0..1
-    const eased = smoothstep(tb);
-    // hedef mesafe: ekranın ortasına gelene kadar -200px -> 0
-    const startPos = -220;
-    const endPos = 0;
-    x = startPos + (endPos - startPos) * eased;
-    // türevler yaklaşık
-    const dt = 1 / FPS;
-    // numeric derivative for v and a (central difference approx)
-    // approximate using small delta
-    const eps = 1e-4;
-    const tplus = Math.min(t+eps, totalT);
-    const tminus = Math.max(t-eps, 0);
-    const tbp = (tplus - t1) / (t2 - t1);
-    const tbm = (tminus - t1) / (t2 - t1);
-    const xp = startPos + (endPos - startPos) * smoothstep(Math.max(0,Math.min(1,tbp)));
-    const xm = startPos + (endPos - startPos) * smoothstep(Math.max(0,Math.min(1,tbm)));
-    v = (xp - xm) / (tplus - tminus);
-    // acceleration numeric
-    const tpp = Math.min(t+2*eps, totalT);
-    const tmm = Math.max(t-2*eps, 0);
-    const xpp = startPos + (endPos - startPos) * smoothstep(Math.max(0,Math.min(1,(tpp - t1)/(t2 - t1))));
-    const xmm = startPos + (endPos - startPos) * smoothstep(Math.max(0,Math.min(1,(tmm - t1)/(t2 - t1))));
-    a = (xpp - 2*x + xmm) / ((2*eps)*(2*eps));
-  } else {
-    // Sonrası: sabit pozisyon
-    x = 0;
-    v = 0;
-    a = 0;
+function computeInitials(p){
+  const rad = p.angleDeg * Math.PI / 180;
+  let v0x=0, v0y=0;
+  if (p.mode === 'oblique'){
+    v0x = p.v0 * Math.cos(rad);
+    v0y = p.v0 * Math.sin(rad);
+  } else if (p.mode === 'horizontal'){
+    v0x = p.v0;
+    v0y = 0;
+  } else if (p.mode === 'up'){
+    v0x = 0;
+    v0y = p.v0;
+  } else if (p.mode === 'down'){
+    v0x = 0;
+    v0y = -p.v0;
   }
-
-  posArr.push(x);
-  velArr.push(v);
-  accArr.push(a);
+  return {v0x, v0y};
 }
 
-/* ---------- GRAFİK ÇİZİMİ ---------- */
-function drawGraph(canvas, data, color, label){
-  const ctx = canvas.getContext('2d');
-  const w = canvas.width = canvas.clientWidth * devicePixelRatio;
-  const h = canvas.height = canvas.clientHeight * devicePixelRatio;
-  ctx.clearRect(0,0,w,h);
-  ctx.scale(devicePixelRatio, devicePixelRatio);
+/* Pozisyon ve hız hesapla */
+function stateAt(t, p){
+  const {v0x, v0y} = computeInitials(p);
+  const x = v0x * t;
+  const y = p.h0 + v0y * t - 0.5 * p.g * t * t;
+  const vx = v0x;
+  const vy = v0y - p.g * t;
+  const ax = 0;
+  const ay = -p.g;
+  const speed = Math.hypot(vx, vy);
+  return {t, x, y, vx, vy, ax, ay, speed};
+}
 
-  // margins
-  const mw = 40, mh = 18;
-  const cw = canvas.clientWidth - mw*2;
-  const ch = canvas.clientHeight - mh*2;
+/* Uçuş süresi (impact time) analitik çözüm:
+   y0 + v0y * t - 0.5*g*t^2 = 0
+   -> 0.5*g*t^2 - v0y*t - y0 = 0  (a>0)
+   Pozitif kök seçilir (t>0)
+*/
+function computeImpactTime(p){
+  const {v0x, v0y} = computeInitials(p);
+  const a = 0.5 * p.g;
+  const b = -v0y;
+  const c = -p.h0;
+  // Quadratic: a t^2 + b t + c = 0
+  const disc = b*b - 4*a*c;
+  if (disc < 0) return null;
+  const sqrtD = Math.sqrt(disc);
+  const t1 = (-b + sqrtD) / (2*a);
+  const t2 = (-b - sqrtD) / (2*a);
+  // Pozitif ve > 1e-9 seç
+  const candidates = [t1,t2].filter(t => t > 1e-9);
+  if (candidates.length === 0) return null;
+  return Math.min(...candidates);
+}
+
+/* Maksimum yükseklik ve zamanı (eğik veya yukarı) */
+function computePeak(p){
+  const {v0x, v0y} = computeInitials(p);
+  if (Math.abs(v0y) < 1e-9) return {tPeak: 0, hMax: p.h0};
+  const tPeak = v0y / p.g; // vy - g t = 0 -> t = v0y/g
+  if (tPeak < 0) return {tPeak: 0, hMax: p.h0};
+  const hMax = p.h0 + v0y * tPeak - 0.5 * p.g * tPeak * tPeak;
+  return {tPeak, hMax};
+}
+
+/* Çarpma hızı ve açısı */
+function computeImpactDetails(p, tImp){
+  if (tImp === null) return null;
+  const s = stateAt(tImp, p);
+  const v = s.speed;
+  const angle = Math.atan2(s.vy, s.vx) * 180 / Math.PI; // derece
+  return {impactSpeed: v, impactAngle: angle, xLand: s.x};
+}
+
+/* ---------- Grafik yardımcıları ---------- */
+function resizeCanvasToDisplaySize(canvas){
+  const dpr = devicePixelRatioVal;
+  const rect = canvas.getBoundingClientRect();
+  const w = Math.max(1, Math.floor(rect.width * dpr));
+  const h = Math.max(1, Math.floor(rect.height * dpr));
+  if (canvas.width !== w || canvas.height !== h){
+    canvas.width = w;
+    canvas.height = h;
+    return true;
+  }
+  return false;
+}
+
+/* Çizim eksenleri ve grid için genel fonksiyon */
+function clearAndSetup(ctx, canvas){
+  const dpr = devicePixelRatioVal;
+  const cw = canvas.width, ch = canvas.height;
+  ctx.clearRect(0,0,cw,ch);
+  ctx.save();
+  ctx.scale(dpr, dpr);
+}
+
+/* Basit otomatik ölçekleme: verilen veri aralığını canvas iç alanına çevir */
+function createScaler(dataX, dataY, paddingPx, canvasClientWidth, canvasClientHeight){
+  const minX = Math.min(...dataX), maxX = Math.max(...dataX);
+  const minY = Math.min(...dataY), maxY = Math.max(...dataY);
+  const pad = paddingPx || 20;
+  const w = canvasClientWidth, h = canvasClientHeight;
+  const rangeX = (maxX - minX) || 1;
+  const rangeY = (maxY - minY) || 1;
+  return {
+    toCanvasX: x => pad + ((x - minX) / rangeX) * (w - pad*2),
+    toCanvasY: y => (h - pad) - ((y - minY) / rangeY) * (h - pad*2),
+    minX, maxX, minY, maxY
+  };
+}
+
+/* Çizgi grafiği (basit) */
+function drawLineGraph(canvas, ctx, dataX, dataY, color, label){
+  resizeCanvasToDisplaySize(canvas);
+  const rect = canvas.getBoundingClientRect();
+  const cw = rect.width, ch = rect.height;
+  clearAndSetup(ctx, canvas);
+  // scale
+  const scaler = createScaler(dataX, dataY, 36, cw, ch);
+  // grid
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.beginPath();
+  for (let gx=0; gx<=4; gx++){
+    const x = 36 + gx*(cw-72)/4;
+    ctx.moveTo(x, 8);
+    ctx.lineTo(x, ch-8);
+  }
+  for (let gy=0; gy<=4; gy++){
+    const y = 8 + gy*(ch-16)/4;
+    ctx.moveTo(36, y);
+    ctx.lineTo(cw-8, y);
+  }
+  ctx.stroke();
 
   // axes
   ctx.strokeStyle = 'rgba(255,255,255,0.12)';
-  ctx.lineWidth = 1;
+  ctx.lineWidth = 1.2;
   ctx.beginPath();
-  ctx.moveTo(mw, mh);
-  ctx.lineTo(mw, mh+ch);
-  ctx.lineTo(mw+cw, mh+ch);
+  ctx.moveTo(36,8); ctx.lineTo(36,ch-8); ctx.lineTo(cw-8,ch-8);
   ctx.stroke();
 
   // label
-  ctx.fillStyle = '#ddd';
+  ctx.fillStyle = '#cfe9ff';
   ctx.font = '12px Inter, Arial';
-  ctx.fillText(label, mw, mh-4);
+  ctx.fillText(label, 40, 18);
 
-  // scale data
-  const maxVal = Math.max(...data.map(v=>Math.abs(v))) || 1;
-  const minVal = Math.min(...data) || -maxVal;
-  const range = maxVal - minVal || 1;
-
-  ctx.beginPath();
+  // plot
   ctx.strokeStyle = color;
-  ctx.lineWidth = 2;
-  for(let i=0;i<data.length;i++){
-    const t = i/(data.length-1);
-    const x = mw + t * cw;
-    // map value to vertical (invert y)
-    const y = mh + ch - ((data[i] - minVal) / range) * ch;
-    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  ctx.lineWidth = 2.2;
+  ctx.beginPath();
+  for (let i=0;i<dataX.length;i++){
+    const cx = scaler.toCanvasX(dataX[i]);
+    const cy = scaler.toCanvasY(dataY[i]);
+    if (i===0) ctx.moveTo(cx,cy); else ctx.lineTo(cx,cy);
   }
   ctx.stroke();
 
-  // draw zero line if in range
-  if(minVal < 0 && maxVal > 0){
-    const y0 = mh + ch - ((0 - minVal) / range) * ch;
-    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
-    ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(mw, y0); ctx.lineTo(mw+cw, y0); ctx.stroke();
-  }
+  ctx.restore();
 }
 
-/* initial draw */
-const vCanvas = document.getElementById('vGraph');
-const aCanvas = document.getElementById('aGraph');
-const sCanvas = document.getElementById('sGraph');
+/* ---------- Sahne çizimi (trajectory) ---------- */
+function drawStage(p, tracePoints, options){
+  resizeCanvasToDisplaySize(canvasStage);
+  const rect = canvasStage.getBoundingClientRect();
+  const cw = rect.width, ch = rect.height;
+  ctxStage.clearRect(0,0,canvasStage.width,canvasStage.height);
+  ctxStage.save();
+  ctxStage.scale(devicePixelRatioVal, devicePixelRatioVal);
 
-/* compute displacement s(t) by integrating velocity */
-let sArr = [];
-let s = 0;
-for(let i=0;i<velArr.length;i++){
-  const dt = totalT / (velArr.length-1);
-  s += velArr[i] * dt;
-  sArr.push(s);
-}
+  // arka plan degrade
+  const g = ctxStage.createLinearGradient(0,0,cw,0);
+  g.addColorStop(0,'rgba(255,255,255,0.02)');
+  g.addColorStop(1,'rgba(255,255,255,0.01)');
+  ctxStage.fillStyle = g;
+  ctxStage.fillRect(0,0,cw,ch);
 
-/* draw once */
-drawGraph(vCanvas, velArr, '#4ee6a8', 'Hız - Zaman (px/s)');
-drawGraph(aCanvas, accArr, '#ff7b7b', 'İvme - Zaman (px/s²)');
-drawGraph(sCanvas, sArr, '#7fb3ff', 'Mesafe - Zaman (px)');
-
-/* ---------- ANİMASYON: DOM ÜZERİNDE GÖRÜNÜM ---------- */
-function animateDigits(){
-  // 1) 5 için hareket ve fade: sağa doğru ivmelenme
-  const five = d5;
-  const startLeft = five.offsetLeft;
-  // apply transform via requestAnimationFrame using same sampling
-  let frame = 0;
-  function step(){
-    const t = frame / SAMPLES * totalT;
-    // update DOM transforms according to posArr
-    // posArr is relative px; scale to visible movement
-    const idx = Math.min(Math.floor((t/totalT) * posArr.length), posArr.length-1);
-    const x = posArr[idx];
-    // For 5: move right and fade during phase A
-    if(t <= t1){
-      five.style.transform = `translateX(${x}px)`;
-      // fade proportional to t/t1
-      const op = Math.max(0, 1 - (t / t1));
-      five.style.opacity = op;
-    } else {
-      // ensure hidden after phase
-      five.style.opacity = 0;
-      five.style.transform = `translateX(${posArr[posArr.length-1]}px)`;
+  // grid
+  if (options.grid){
+    ctxStage.strokeStyle = 'rgba(255,255,255,0.03)';
+    ctxStage.lineWidth = 1;
+    for (let gx=0; gx<=cw; gx+=40){
+      ctxStage.beginPath(); ctxStage.moveTo(gx,0); ctxStage.lineTo(gx,ch); ctxStage.stroke();
     }
-
-    // For 6: create element when phase B starts
-    if(t >= t1 && !document.getElementById('d6')){
-      const d6 = document.createElement('div');
-      d6.className = 'digit';
-      d6.id = 'd6';
-      d6.textContent = '6';
-      d6.style.opacity = 0;
-      d6.style.transform = 'translateX(-220px) scale(.4)';
-      // replace the old 5 with 6 in DOM order
-      yearEl.replaceChild(d6, five);
+    for (let gy=0; gy<=ch; gy+=40){
+      ctxStage.beginPath(); ctxStage.moveTo(0,gy); ctxStage.lineTo(cw,gy); ctxStage.stroke();
     }
+  }
 
-    // animate 6 during phase B
-    const d6el = document.getElementById('d6');
-    if(d6el){
-      if(t <= t2){
-        const tb = Math.max(0, Math.min(1, (t - t1) / (t2 - t1)));
-        const eased = smoothstep(tb);
-        const startPos = -220;
-        const endPos = 0;
-        const curX = startPos + (endPos - startPos) * eased;
-        d6el.style.transform = `translateX(${curX}px) scale(${0.4 + 0.6*eased})`;
-        d6el.style.opacity = eased;
-      } else {
-        d6el.style.transform = 'translateX(0px) scale(1)';
-        d6el.style.opacity = 1;
-      }
+  // ground line (y=0) -> map to canvas
+  // Determine world extents from tracePoints
+  const xs = tracePoints.map(p=>p.x);
+  const ys = tracePoints.map(p=>p.y);
+  const minX = Math.min(0, ...xs);
+  const maxX = Math.max(...xs, 10);
+  const minY = Math.min(...ys, 0);
+  const maxY = Math.max(...ys, 10);
+
+  // add margins
+  const pad = 40;
+  const worldW = maxX - minX || 1;
+  const worldH = Math.max(maxY - minY, 1);
+
+  const toCanvasX = x => pad + ((x - minX) / worldW) * (cw - pad*2);
+  const toCanvasY = y => (ch - pad) - ((y - minY) / worldH) * (ch - pad*2);
+
+  // ground line at y=0
+  const groundY = toCanvasY(0);
+  ctxStage.strokeStyle = 'rgba(120,200,120,0.9)';
+  ctxStage.lineWidth = 2;
+  ctxStage.beginPath();
+  ctxStage.moveTo(0, groundY);
+  ctxStage.lineTo(cw, groundY);
+  ctxStage.stroke();
+
+  // predicted path (analitik) - dashed
+  if (options.pred){
+    ctxStage.setLineDash([6,6]);
+    ctxStage.strokeStyle = 'rgba(255,255,255,0.18)';
+    ctxStage.lineWidth = 1.6;
+    ctxStage.beginPath();
+    for (let i=0;i<tracePoints.length;i++){
+      const pt = tracePoints[i];
+      const cx = toCanvasX(pt.x), cy = toCanvasY(pt.y);
+      if (i===0) ctxStage.moveTo(cx,cy); else ctxStage.lineTo(cx,cy);
     }
-
-    frame++;
-    if(frame <= SAMPLES) requestAnimationFrame(step);
+    ctxStage.stroke();
+    ctxStage.setLineDash([]);
   }
-  requestAnimationFrame(step);
+
+  // trace (solid)
+  if (options.trace){
+    ctxStage.strokeStyle = 'rgba(255,200,80,0.95)';
+    ctxStage.lineWidth = 2.6;
+    ctxStage.beginPath();
+    for (let i=0;i<tracePoints.length;i++){
+      const pt = tracePoints[i];
+      const cx = toCanvasX(pt.x), cy = toCanvasY(pt.y);
+      if (i===0) ctxStage.moveTo(cx,cy); else ctxStage.lineTo(cx,cy);
+    }
+    ctxStage.stroke();
+  }
+
+  // projectile current (last point)
+  const cur = tracePoints[tracePoints.length-1] || tracePoints[0];
+  if (cur){
+    const cx = toCanvasX(cur.x), cy = toCanvasY(cur.y);
+    // shadow
+    ctxStage.fillStyle = 'rgba(0,0,0,0.35)';
+    ctxStage.beginPath(); ctxStage.ellipse(cx+6, groundY+6, 18, 6, 0, 0, Math.PI*2); ctxStage.fill();
+    // projectile
+    ctxStage.fillStyle = 'rgba(255,120,60,0.98)';
+    ctxStage.beginPath(); ctxStage.arc(cx, cy, 10, 0, Math.PI*2); ctxStage.fill();
+    // outline
+    ctxStage.strokeStyle = 'rgba(255,255,255,0.12)'; ctxStage.lineWidth = 1; ctxStage.stroke();
+
+    // velocity vector
+    if (options.vel){
+      const scale = 0.08 * (cw / Math.max(200, worldW));
+      ctxStage.strokeStyle = 'rgba(120,220,255,0.95)';
+      ctxStage.lineWidth = 2;
+      ctxStage.beginPath();
+      ctxStage.moveTo(cx, cy);
+      ctxStage.lineTo(cx + cur.vx * scale, cy - cur.vy * scale);
+      ctxStage.stroke();
+      // arrow head
+      const ax = cx + cur.vx * scale, ay = cy - cur.vy * scale;
+      ctxStage.beginPath();
+      ctxStage.fillStyle = 'rgba(120,220,255,0.95)';
+      ctxStage.arc(ax, ay, 4, 0, Math.PI*2); ctxStage.fill();
+    }
+  }
+
+  // markers: max height and landing
+  const peak = tracePoints.reduce((acc,pt)=> pt.y>acc.y?pt:acc, {y:-Infinity});
+  if (peak && options.markers){
+    const px = toCanvasX(peak.x), py = toCanvasY(peak.y);
+    ctxStage.fillStyle = 'rgba(255,255,255,0.9)';
+    ctxStage.beginPath(); ctxStage.arc(px, py, 5, 0, Math.PI*2); ctxStage.fill();
+    // label
+    ctxStage.fillStyle = 'rgba(255,255,255,0.9)';
+    ctxStage.font = '12px Inter, Arial';
+    ctxStage.fillText('Maks Yükseklik', px+8, py-8);
+  }
+  // landing marker (last point where y<=0)
+  const land = tracePoints.slice().reverse().find(pt => pt.y <= 0);
+  if (land && options.markers){
+    const lx = toCanvasX(land.x), ly = toCanvasY(land.y);
+    ctxStage.fillStyle = 'rgba(120,255,140,0.95)';
+    ctxStage.beginPath(); ctxStage.rect(lx-6, ly-6, 12, 12); ctxStage.fill();
+    ctxStage.fillStyle = 'rgba(255,255,255,0.9)';
+    ctxStage.fillText('İniş', lx+8, ly+4);
+  }
+
+  ctxStage.restore();
 }
 
-/* ---------- KONFETİ ---------- */
-function launchConfetti(count=220){
-  for(let i=0;i<count;i++){
-    const el = document.createElement('div');
-    el.className = 'confetti';
-    const size = 6 + Math.random()*10;
-    el.style.width = size + 'px';
-    el.style.height = (size*1.4) + 'px';
-    el.style.left = Math.random()*window.innerWidth + 'px';
-    el.style.top = (-50 - Math.random()*200) + 'px';
-    el.style.background = `hsl(${Math.random()*360},80%,60%)`;
-    el.style.borderRadius = (Math.random()>0.6? '50%':'2px');
-    el.style.opacity = 0.95;
-    el.style.transform = `rotate(${Math.random()*360}deg)`;
-    el.style.transition = `transform ${2+Math.random()*2}s linear, top ${2+Math.random()*2}s linear, opacity 1s linear`;
-    document.body.appendChild(el);
-    // animate to bottom
-    setTimeout(()=> {
-      el.style.top = (window.innerHeight + 60) + 'px';
-      el.style.transform = `translateX(${(Math.random()-0.5)*200}px) rotate(${Math.random()*720}deg)`;
-      el.style.opacity = 0.9;
-    }, 20 + Math.random()*300);
+/* ---------- CSV işlemleri ---------- */
+function generateCsv(data){
+  // data: array of {t,x,y,vx,vy,speed,ax,ay}
+  const header = ['t(s)','x(m)','y(m)','vx(m/s)','vy(m/s)','|v|(m/s)','ax(m/s^2)','ay(m/s^2)'];
+  const rows = data.map(d => [d.t.toFixed(6), d.x.toFixed(6), d.y.toFixed(6), d.vx.toFixed(6), d.vy.toFixed(6), d.speed.toFixed(6), d.ax.toFixed(6), d.ay.toFixed(6)].join(','));
+  return header.join(',') + '\n' + rows.join('\n');
+}
 
-    // remove later
-    setTimeout(()=> el.remove(), 5000 + Math.random()*2000);
+/* ---------- Ana simülasyon döngüsü ---------- */
+let simParams = null;
+let impactTime = null;
+let peakInfo = null;
+let simInterval = null;
+
+function resetSimulation(){
+  running = false; paused = false;
+  simTime = 0; startTime = 0; lastFrame = 0;
+  tracePoints = [];
+  csvData = [];
+  // reset readouts
+  rt_t.textContent = '0.000'; rt_x.textContent = '0.000'; rt_y.textContent = '0.000';
+  rt_v.textContent = '0.000'; rt_vx.textContent = '0.000'; rt_vy.textContent = '0.000';
+  rt_ax.textContent = '0.000'; rt_ay.textContent = '0.000';
+  sum_time.textContent = '—'; sum_hmax.textContent = '—'; sum_range.textContent = '—';
+  sum_imp_v.textContent = '—'; sum_imp_angle.textContent = '—'; sum_tpeak.textContent = '—';
+  drawStage({},{}, {trace:false,pred:false,vel:false,grid:false});
+  // clear graphs
+  ctxV.clearRect(0,0,vCanvas.width,vCanvas.height);
+  ctxA.clearRect(0,0,aCanvas.width,aCanvas.height);
+  ctxS.clearRect(0,0,sCanvas.width,sCanvas.height);
+}
+
+/* Başlat */
+function startSimulation(){
+  // parametreleri oku
+  params.mode = modeSelect.value;
+  params.v0 = parseFloat(v0Input.value) || 0;
+  params.angleDeg = parseFloat(angleInput.value) || 0;
+  params.h0 = parseFloat(h0Input.value) || 0;
+  params.g = parseFloat(gInput.value) || 9.81;
+  speedFactor = parseFloat(speedRange.value) || 1.0;
+
+  // compute impact and peak
+  impactTime = computeImpactTime(params);
+  peakInfo = computePeak(params);
+
+  // prepare predicted trace (sampled analytically until impact or maxSimTime)
+  const dtSample = 0.01; // 10 ms sampling for smooth curve
+  const tEnd = (impactTime === null) ? Math.min(params.maxSimTime, 10) : impactTime;
+  const predicted = [];
+  for (let t=0; t<=tEnd+1e-9; t+=dtSample){
+    const s = stateAt(t, params);
+    predicted.push(s);
+    if (s.y < -10 && impactTime === null) break;
+  }
+
+  // initialize trace with t=0
+  tracePoints = [stateAt(0, params)];
+  csvData = [tracePoints[0]];
+
+  // update summary panel (some values known immediately)
+  sum_tpeak.textContent = (peakInfo && peakInfo.tPeak>0) ? fmt(peakInfo.tPeak) + ' s' : '—';
+  sum_hmax.textContent = (peakInfo && peakInfo.hMax!==undefined) ? fmt(peakInfo.hMax) + ' m' : '—';
+
+  if (impactTime !== null){
+    const imp = computeImpactDetails(params, impactTime);
+    sum_time.textContent = fmt(impactTime) + ' s';
+    sum_range.textContent = fmt(imp.xLand) + ' m';
+    sum_imp_v.textContent = fmt(imp.impactSpeed) + ' m/s';
+    sum_imp_angle.textContent = fmt(imp.impactAngle) + '°';
+  } else {
+    sum_time.textContent = 'Çarpma yok';
+    sum_range.textContent = '—';
+    sum_imp_v.textContent = '—';
+    sum_imp_angle.textContent = '—';
+  }
+
+  // store predicted for drawing
+  simParams = {predicted};
+
+  // start animation loop
+  running = true; paused = false;
+  startTime = performance.now();
+  lastFrame = startTime;
+  requestAnimationFrame(loop);
+}
+
+/* Döngü */
+function loop(now){
+  if (!running) return;
+  const dtReal = (now - lastFrame) / 1000; // gerçek geçen süre (s)
+  lastFrame = now;
+  if (!paused){
+    simTime += dtReal * speedFactor;
+    // limit
+    if (simTime > params.maxSimTime) {
+      running = false;
+      finalizeSimulation();
+      return;
+    }
+    // compute state
+    const s = stateAt(simTime, params);
+    tracePoints.push(s);
+    csvData.push(s);
+
+    // update readouts
+    rt_t.textContent = fmt(simTime,4);
+    rt_x.textContent = fmt(s.x);
+    rt_y.textContent = fmt(s.y);
+    rt_vx.textContent = fmt(s.vx);
+    rt_vy.textContent = fmt(s.vy);
+    rt_v.textContent = fmt(s.speed);
+    rt_ax.textContent = fmt(s.ax);
+    rt_ay.textContent = fmt(s.ay);
+
+    // stop if hit ground (y<=0 and t>0)
+    if (s.y <= 0 && simTime > 1e-6){
+      running = false;
+      finalizeSimulation();
+      drawStage(params, tracePoints, {trace:true,pred:true,vel:true,grid:document.querySelector('[data-toggle="grid"].active')!==null});
+      return;
+    }
+  }
+
+  // draw stage with predicted path
+  const showTrace = document.querySelector('[data-toggle="trace"].active') !== null;
+  const showPred = document.querySelector('[data-toggle="pred"].active') !== null;
+  const showVel = document.querySelector('[data-toggle="vel"].active') !== null;
+  const showGrid = document.querySelector('[data-toggle="grid"].active') !== null;
+
+  drawStage(params, showPred ? simParams.predicted : tracePoints, {trace:showTrace,pred:showPred,vel:showVel,grid:showGrid,markers:true});
+
+  // update graphs (draw full history)
+  const times = csvData.map(d=>d.t);
+  const speeds = csvData.map(d=>d.speed);
+  const accs = csvData.map(d=>d.ay); // ax is zero
+  const ys = csvData.map(d=>d.y);
+  const xs = csvData.map(d=>d.x);
+
+  drawLineGraph(vCanvas, ctxV, times, speeds, '#4ee6a8', 'Hız - Zaman |V|(m/s)');
+  drawLineGraph(aCanvas, ctxA, times, accs, '#ff7b7b', 'İvme - Zaman ay (m/s²)');
+  // Mesafe grafiği: y ve x birlikte (çizgiler farklı renk)
+  // For sCanvas we draw both series manually
+  resizeCanvasToDisplaySize(sCanvas);
+  const rect = sCanvas.getBoundingClientRect();
+  const cw = rect.width, ch = rect.height;
+  ctxS.clearRect(0,0,sCanvas.width,sCanvas.height);
+  ctxS.save(); ctxS.scale(devicePixelRatioVal, devicePixelRatioVal);
+  // axes & grid
+  ctxS.strokeStyle = 'rgba(255,255,255,0.06)'; ctxS.lineWidth = 1;
+  for (let gx=0; gx<=4; gx++){
+    const x = 36 + gx*(cw-72)/4;
+    ctxS.beginPath(); ctxS.moveTo(x,8); ctxS.lineTo(x,ch-8); ctxS.stroke();
+  }
+  for (let gy=0; gy<=4; gy++){
+    const y = 8 + gy*(ch-16)/4;
+    ctxS.beginPath(); ctxS.moveTo(36,y); ctxS.lineTo(cw-8,y); ctxS.stroke();
+  }
+  ctxS.strokeStyle = 'rgba(255,255,255,0.12)'; ctxS.beginPath(); ctxS.moveTo(36,8); ctxS.lineTo(36,ch-8); ctxS.lineTo(cw-8,ch-8); ctxS.stroke();
+  ctxS.fillStyle = '#cfe9ff'; ctxS.font = '12px Inter, Arial'; ctxS.fillText('Mesafe - Zaman (y: m, x: m)', 40, 18);
+
+  // scale for both series
+  const minT = Math.min(...times), maxT = Math.max(...times) || 1;
+  const minY = Math.min(...ys, ...xs), maxY = Math.max(...ys, ...xs);
+  const pad = 36;
+  const toX = t => pad + ((t - minT) / (maxT - minT || 1)) * (cw - pad*2);
+  const toY = v => (ch - pad) - ((v - minY) / (maxY - minY || 1)) * (ch - pad*2);
+
+  // draw y series
+  ctxS.strokeStyle = '#7fb3ff'; ctxS.lineWidth = 2;
+  ctxS.beginPath();
+  for (let i=0;i<times.length;i++){
+    const cx = toX(times[i]), cy = toY(ys[i]);
+    if (i===0) ctxS.moveTo(cx,cy); else ctxS.lineTo(cx,cy);
+  }
+  ctxS.stroke();
+  // draw x series
+  ctxS.strokeStyle = '#ffd166'; ctxS.lineWidth = 2;
+  ctxS.beginPath();
+  for (let i=0;i<times.length;i++){
+    const cx = toX(times[i]), cy = toY(xs[i]);
+    if (i===0) ctxS.moveTo(cx,cy); else ctxS.lineTo(cx,cy);
+  }
+  ctxS.stroke();
+
+  ctxS.restore();
+
+  // continue loop
+  requestAnimationFrame(loop);
+}
+
+/* Simülasyon sonu: özet hesapla ve göster */
+function finalizeSimulation(){
+  // impactTime may be null; if not, compute final state at impact
+  if (impactTime === null){
+    // try to compute from last csvData point where y<=0
+    const land = csvData.slice().reverse().find(d => d.y <= 0);
+    if (land) impactTime = land.t;
+  }
+  if (impactTime !== null){
+    const imp = computeImpactDetails(params, impactTime);
+    sum_time.textContent = fmt(impactTime) + ' s';
+    sum_range.textContent = fmt(imp.xLand) + ' m';
+    sum_imp_v.textContent = fmt(imp.impactSpeed) + ' m/s';
+    sum_imp_angle.textContent = fmt(imp.impactAngle) + '°';
+  } else {
+    sum_time.textContent = 'Çarpma yok';
   }
 }
 
-/* ---------- KAR EFEKTI ---------- */
-const snow = document.getElementById('snow');
-const sctx = snow.getContext('2d');
-let flakes = [];
-function resizeSnow(){
-  snow.width = window.innerWidth;
-  snow.height = window.innerHeight;
-}
-window.addEventListener('resize', ()=>{ resizeSnow(); });
-resizeSnow();
-for(let i=0;i<160;i++){
-  flakes.push({
-    x: Math.random()*snow.width,
-    y: Math.random()*snow.height,
-    r: 1 + Math.random()*3,
-    s: 0.2 + Math.random()*1.2,
-    drift: (Math.random()-0.5)*0.6
-  });
-}
-function updateSnow(){
-  sctx.clearRect(0,0,snow.width,snow.height);
-  sctx.fillStyle = 'rgba(255,255,255,0.9)';
-  for(let f of flakes){
-    f.y += f.s;
-    f.x += f.drift;
-    if(f.y > snow.height + 10){ f.y = -10; f.x = Math.random()*snow.width; }
-    if(f.x > snow.width + 10) f.x = -10;
-    sctx.beginPath();
-    sctx.arc(f.x, f.y, f.r, 0, Math.PI*2);
-    sctx.fill();
+/* ---------- Event listeners ---------- */
+startBtn.addEventListener('click', ()=>{
+  if (running && !paused) return;
+  if (!running){
+    startSimulation();
+  } else {
+    paused = false;
+    lastFrame = performance.now();
+    requestAnimationFrame(loop);
   }
-  requestAnimationFrame(updateSnow);
-}
-updateSnow();
-
-/* ---------- BAŞLATMA ---------- */
-setTimeout(()=>{
-  // başlat animasyon ve konfeti
-  animateDigits();
-  setTimeout(()=> launchConfetti(260), 1200);
-  // yeniden çizimler için grafikleri periyodik güncelle
-  let redrawCount = 0;
-  const redrawInterval = setInterval(()=>{
-    // (Grafikler statik hesaplandı ama istersen animasyonlu güncelleme eklenebilir)
-    drawGraph(vCanvas, velArr, '#4ee6a8', 'Hız - Zaman (px/s)');
-    drawGraph(aCanvas, accArr, '#ff7b7b', 'İvme - Zaman (px/s²)');
-    drawGraph(sCanvas, sArr, '#7fb3ff', 'Mesafe - Zaman (px)');
-    redrawCount++;
-    if(redrawCount>10) clearInterval(redrawInterval);
-  }, 200);
-}, 600);
-
-/* Responsive: canvas yeniden çizimleri */
-window.addEventListener('resize', ()=> {
-  drawGraph(vCanvas, velArr, '#4ee6a8', 'Hız - Zaman (px/s)');
-  drawGraph(aCanvas, accArr, '#ff7b7b', 'İvme - Zaman (px/s²)');
-  drawGraph(sCanvas, sArr, '#7fb3ff', 'Mesafe - Zaman (px)');
 });
+pauseBtn.addEventListener('click', ()=>{
+  paused = !paused;
+  pauseBtn.textContent = paused ? 'Devam' : 'Duraklat';
+});
+resetBtn.addEventListener('click', ()=>{
+  resetSimulation();
+});
+
+modeSelect.addEventListener('change', ()=>{
+  const m = modeSelect.value;
+  modeBadge.textContent = 'Mod: ' + (m === 'oblique' ? 'Eğik Atış' : m === 'horizontal' ? 'Yatay Atış' : m === 'up' ? 'Yukarı Düşey' : 'Aşağı Düşey');
+  if (m !== 'oblique') angleInput.disabled = true; else angleInput.disabled = false;
+});
+
+speedRange.addEventListener('input', ()=>{ speedFactor = parseFloat(speedRange.value); });
+
+toggles.forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    btn.classList.toggle('active');
+  });
+});
+
+/* CSV kopyala ve indir */
+copyCsvBtn.addEventListener('click', async ()=>{
+  if (csvData.length === 0) return;
+  const csv = generateCsv(csvData);
+  try {
+    await navigator.clipboard.writeText(csv);
+    copyCsvBtn.textContent = 'Kopyalandı';
+    setTimeout(()=> copyCsvBtn.textContent = 'CSV Kopyala', 1500);
+  } catch (e){
+    copyCsvBtn.textContent = 'Kopyalama Hata';
+    setTimeout(()=> copyCsvBtn.textContent = 'CSV Kopyala', 1500);
+  }
+});
+downloadCsvBtn.addEventListener('click', ()=>{
+  if (csvData.length === 0) return;
+  const csv = generateCsv(csvData);
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'trajectory.csv';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+});
+
+/* Responsive canvas on load */
+function onResize(){
+  devicePixelRatioVal = window.devicePixelRatio || 1;
+  resizeCanvasToDisplaySize(canvasStage);
+  resizeCanvasToDisplaySize(vCanvas);
+  resizeCanvasToDisplaySize(aCanvas);
+  resizeCanvasToDisplaySize(sCanvas);
+  // redraw current stage
+  if (tracePoints.length>0) drawStage(params, tracePoints, {trace:true,pred:true,vel:true,grid:document.querySelector('[data-toggle="grid"].active')!==null});
+}
+window.addEventListener('resize', onResize);
+
+/* Başlangıç ayarları */
+resetSimulation();
+modeSelect.dispatchEvent(new Event('change'));
+onResize();
+
+/* Kullanıcıya hızlı başlatma için default start (isteğe bağlı) */
+// startSimulation(); // yorum satırını kaldırarak otomatik başlatabilirsin
 </script>
 </body>
 </html>

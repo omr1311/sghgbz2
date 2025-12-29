@@ -682,7 +682,6 @@
         <div class="clock" id="hudClock">—:—:—</div>
       </div>
 
-      <!-- Canvas lives behind, HUD acts as overlay instruction panel -->
       <div class="legend">
         <div class="k">Şehir modunda: binalar, ışık pikselleri ve trafikli parçacıklar</div>
         <div class="k">Modu değiştirip tamamen farklı bir görsel dünya açabilirsin</div>
@@ -696,10 +695,8 @@
     </main>
   </div>
 
-  <!-- CUSTOM CURSOR -->
   <div class="cursor" id="cursor"></div>
 
-  <!-- MODAL -->
   <div class="modalMask" id="modalMask">
     <div class="modal">
       <h2>Hakkında</h2>
@@ -711,7 +708,6 @@
     </div>
   </div>
 
-  <!-- TOAST -->
   <div class="toast" id="toast"></div>
 
   <script>
@@ -747,7 +743,6 @@
       showToast._id = setTimeout(()=> { el.style.display = 'none'; }, ms);
     }
 
-    /* Clock */
     function tickClocks() {
       const d = new Date();
       const hh = String(d.getHours()).padStart(2,'0');
@@ -869,10 +864,8 @@
       const lanes = 3;
       const laneH = 14;
 
-      // Road
       state.objects.push({ kind:'road', y: groundY, lanes, laneH });
 
-      // Buildings
       for (let i=0;i<buildingCount;i++) {
         const bw = rand(40, 140);
         const bh = rand(60, 500);
@@ -890,7 +883,6 @@
         });
       }
 
-      // Traffic lights / street pixels
       for (let i=0;i<randi(50,120);i++) {
         const x = rand(0, W);
         const y = groundY + rand(8, 60);
@@ -900,7 +892,6 @@
         });
       }
 
-      // Orbiters for 'orbits' mode
       for (let i=0;i<randi(12, 24);i++) {
         state.orbiters.push({
           r: rand(40, 260),
@@ -911,7 +902,6 @@
         });
       }
 
-      // Wave field for 'waves' mode
       const cols = 40;
       const rows = 22;
       for (let y=0;y<rows;y++) {
@@ -922,7 +912,6 @@
         state.waveField.push(row);
       }
 
-      // Grid for 'grid' mode
       const gCols = 28;
       const gRows = 16;
       for (let y=0;y<gRows;y++) {
@@ -947,13 +936,10 @@
     function drawRoad(road) {
       const { y, lanes, laneH } = road;
       ctx.save();
-      ctx.translate(0,0);
 
-      // Asphalt
       ctx.fillStyle = 'rgba(20,22,40,0.9)';
       ctx.fillRect(0, y, W, H - y);
 
-      // Lane lines
       ctx.strokeStyle = 'rgba(240,240,255,0.18)';
       ctx.lineWidth = 2;
       for (let i=0;i<lanes;i++) {
@@ -969,7 +955,6 @@
     }
 
     function drawBuilding(b) {
-      // Slight perspective skew
       ctx.save();
       ctx.translate(b.x, b.y);
       ctx.transform(1, 0, b.skew, 1, 0, 0);
@@ -981,7 +966,6 @@
       ctx.fillRect(0, 0, b.w, b.h);
       ctx.strokeRect(0, 0, b.w, b.h);
 
-      // Roof glow
       const g = gradientRadial(b.w*0.5, 10, b.w*0.6, [
         [0, hueToRgb((b.hue+40)%360, 80, 70, 0.10*state.glow/50)],
         [1, 'rgba(255,255,255,0)']
@@ -989,7 +973,6 @@
       ctx.fillStyle = g;
       ctx.beginPath(); ctx.arc(b.w*0.5, 10, b.w*0.6, 0, TAU); ctx.fill();
 
-      // Windows grid
       const wPad = 8;
       const hPad = 10;
       const winW = (b.w - wPad*2) / b.cols;
@@ -1001,7 +984,6 @@
           const ww = winW * 0.84;
           const wh = winH * 0.74;
 
-          // Light flicker
           const on = Math.random() > 0.26;
           const lh = (b.hue + (on? r*c : 180)) % 360;
           const alpha = on ? rand(0.18, 0.65) : 0.08;
@@ -1042,7 +1024,6 @@
         p.y += p.vy;
         p.life--;
 
-        // bounce ground
         const groundY = H*0.72;
         if (p.y > groundY) {
           p.y = groundY;
@@ -1108,7 +1089,6 @@
         ctx.fillStyle = hueToRgb(o.hue, 100, 70, 0.90);
         ctx.beginPath(); ctx.arc(x, y, o.w, 0, TAU); ctx.fill();
 
-        // trail
         ctx.strokeStyle = hueToRgb(o.hue, 100, 70, 0.42);
         ctx.lineWidth = 2;
         ctx.beginPath(); ctx.moveTo(x, y);
@@ -1118,7 +1098,6 @@
     }
 
     function drawRipples() {
-      // for 'waves' mode
       state.ripples.forEach((r,i)=>{
         r.r += 0.8;
         r.a *= 0.98;
@@ -1128,7 +1107,6 @@
         if (r.a < 0.02) state.ripples.splice(i,1);
       });
 
-      // wave field surface
       const rows = state.waveField.length;
       if (!rows) return;
       const cols = state.waveField[0].length;
@@ -1144,14 +1122,12 @@
           const hue = (x*6 + y*11) % 360;
           ctx.fillStyle = hueToRgb(hue, 70, state.night ? 50 : 65, 0.18);
           ctx.fillRect(xx, yy, cellW*0.9, 4);
-          // decay
           cell.z *= 0.96;
         }
       }
     }
 
     function drawRain() {
-      // spawn
       const quota = state.density;
       for (let i=0;i<quota;i++) {
         state.rainDrops.push({
@@ -1165,7 +1141,6 @@
         });
       }
 
-      // draw
       for (let i=state.rainDrops.length-1;i>=0;i--) {
         const d = state.rainDrops[i];
         d.x += d.vx;
@@ -1179,7 +1154,6 @@
 
         if (d.y > H*0.72) {
           state.rainDrops.splice(i,1);
-          // ripple
           state.ripples.push({ x: d.x, y: H*0.72, r: 0, a: 0.5, hue: 190 });
         } else if (d.x<-20 || d.x>W+20 || d.y>H+20) {
           state.rainDrops.splice(i,1);
@@ -1188,7 +1162,6 @@
     }
 
     function drawFireworks() {
-      // Compose fireworks from multiple bursts
       if (Math.random() < 0.02) {
         const x = rand(W*0.1, W*0.9);
         const y = rand(H*0.1, H*0.4);
@@ -1225,7 +1198,6 @@
         ctx.fillStyle = hueToRgb(c.hue, 80, state.night?48:60, 0.24);
         ctx.fillRect(x, y+h, w, -h);
 
-        // highlight
         const g = ctx.createLinearGradient(x, y+h-h, x+w, y+h);
         g.addColorStop(0, hueToRgb((c.hue+40)%360, 80, 70, 0.08));
         g.addColorStop(1, 'rgba(255,255,255,0)');
@@ -1233,7 +1205,6 @@
         ctx.fillRect(x, y+h-h, w, h);
       }
 
-      // grid lines
       ctx.strokeStyle = 'rgba(255,255,255,0.06)';
       ctx.lineWidth = 1;
       for (let cx=0; cx<=cols; cx++) {
@@ -1260,16 +1231,13 @@
       state.fps = Math.round(1000 / Math.max(1, dt));
       ctx.clearRect(0,0,W,H);
 
-      // background vignette
       const g = ctx.createRadialGradient(W/2,H/2,0,W/2,H/2,Math.max(W,H)*0.8);
       g.addColorStop(0, 'rgba(0,0,0,0)');
       g.addColorStop(1, 'rgba(0,0,0,'+(state.night?0.48:0.32)+')');
       ctx.fillStyle = g;
       ctx.fillRect(0,0,W,H);
 
-      // draw by mode
       if (state.mode === 'city') {
-        // ground & buildings
         const road = state.objects.find(o=>o.kind==='road');
         if (road) drawRoad(road);
         for (let i=0;i<state.objects.length;i++) {
@@ -1278,7 +1246,6 @@
         }
         drawLights();
       } else if (state.mode === 'neon') {
-        // neon wires
         for (let i=0;i<120;i++) {
           const x = i/120 * W;
           const y = H*0.3 + Math.sin(performance.now()*0.0012 + i*0.3)*40;
@@ -1298,7 +1265,6 @@
         if (road) drawRoad(road);
         drawRain();
       } else if (state.mode === 'aurora') {
-        // layered ribbons
         for (let i=0;i<8;i++) {
           const baseY = H*0.15 + i*60;
           const amp = 40 + i*10;
@@ -1318,10 +1284,8 @@
         drawGrid();
       }
 
-      // particles last
       drawParticles();
 
-      // readouts
       document.getElementById('fps').textContent = clamp(state.fps,0,240);
       document.getElementById('objCount').textContent = state.objects.length + state.particles.length;
 
@@ -1346,7 +1310,6 @@
       state.mouse.x = e.clientX; state.mouse.y = e.clientY;
       cursor.style.transform = `translate3d(${state.mouse.x}px,${state.mouse.y}px,0)`;
 
-      // waves poke
       if (state.mode === 'waves') {
         const rows = state.waveField.length;
         if (rows) {
@@ -1368,7 +1331,6 @@
         }
       }
 
-      // wind effect near edges
       const edge = Math.min(state.mouse.x, W - state.mouse.x) / (W/2);
       state.wind = lerp(state.wind, (1-edge)*60 * (state.mouse.down?1.4:1.0), 0.06);
     });
@@ -1421,7 +1383,6 @@
     });
     document.getElementById('btnNight').addEventListener('click', toggleNight);
 
-    // chips
     const chipbar = document.getElementById('modeChips');
     chipbar.addEventListener('click', (e)=>{
       if (!e.target.classList.contains('chip')) return;
@@ -1436,7 +1397,6 @@
       chips.forEach(ch=> ch.classList.toggle('active', ch.dataset.mode === state.mode));
     }
 
-    // builder inputs
     document.getElementById('inpBuildings').addEventListener('input', (e)=>{
       state.buildings = +e.target.value;
       rebuildCity();
@@ -1467,7 +1427,6 @@
       showToast('PNG dışa aktarıldı.');
     });
 
-    // modal
     document.getElementById('btnModal').addEventListener('click', ()=>{
       document.getElementById('modalMask').style.display = 'flex';
     });
@@ -1579,7 +1538,6 @@
       state.audio.ctx = new AC();
       const ctxA = state.audio.ctx;
 
-      // noise node
       const bufferSize = 2 * ctxA.sampleRate;
       const buffer = ctxA.createBuffer(1, bufferSize, ctxA.sampleRate);
       const data = buffer.getChannelData(0);
@@ -1615,7 +1573,6 @@
         setTimeout(()=> {
           try { node.noise.stop(); } catch(e) {}
           state.audio.running = false;
-          // rebuild node to start again later
           state.audio.ctx.close().then(()=>{
             state.audio.ctx = null;
             state.audio.node = null;
@@ -1647,7 +1604,6 @@
     /* =========================================================
        MISC EFFECTS
        ========================================================= */
-    // Gentle wobble on HUD title
     (function wobble(){
       const el = document.querySelector('.hudTitle');
       let t = 0;
@@ -1661,10 +1617,8 @@
       step();
     })();
 
-    // Update preview at start
     updatePreview();
 
-    // Scene hint updates
     setInterval(()=>{
       const hints = [
         'İpucu: Shift basılı tutup patlatırsan çok daha güçlü bir efekt alırsın.',

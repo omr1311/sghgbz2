@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Procedural Metropolis — Interactive Art Playground</title>
+  <title>Omni Playground — Hyper Etkileşimli Sanat, Fizik ve Animasyon</title>
   <style>
     /* =========================================================
-       GLOBAL THEME AND RESET
+       THEME
        ========================================================= */
     :root {
       --bg0: #0a0b18;
@@ -22,23 +22,15 @@
       --accent3: #ffc857;
 
       --glass: rgba(255,255,255,0.06);
-      --glass2: rgba(255,255,255,0.12);
       --border: rgba(255,255,255,0.12);
-      --border2: rgba(255,255,255,0.2);
 
-      --grid-gap: 16px;
-      --radius-lg: 20px;
-      --radius-md: 14px;
-      --radius-sm: 10px;
-
-      --shadow-1: 0 30px 90px rgba(0,0,0,0.40);
-      --shadow-2: 0 18px 40px rgba(0,0,0,0.35);
-      --shadow-inset: inset 0 1px 0 rgba(255,255,255,0.08);
+      --gap: 16px;
+      --r-lg: 20px;
+      --r-md: 14px;
+      --r-sm: 10px;
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box }
     html, body {
       margin: 0;
       height: 100%;
@@ -47,287 +39,137 @@
       font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
       overflow: hidden;
     }
-    a { color: var(--accent) }
 
     /* =========================================================
-       LAYERS
+       LAYOUT
        ========================================================= */
-    .layer {
+    .frame {
       position: fixed;
       inset: 0;
-    }
-    #cityCanvas {
-      position: absolute;
-      inset: 0;
-      z-index: 0;
-      filter: saturate(1.1) contrast(1.04);
-      will-change: transform;
-    }
-    .atmosphere {
-      position: absolute;
-      inset: 0;
-      z-index: 1;
-      pointer-events: none;
-      mix-blend-mode: screen;
-    }
-    .glow {
-      position: absolute;
-      width: 70vmax;
-      height: 70vmax;
-      border-radius: 50%;
-      background: radial-gradient(closest-side, rgba(90,240,255,0.18), transparent 70%);
-      top: -15vmax;
-      left: -20vmax;
-      animation: driftGlow 26s ease-in-out infinite alternate;
-      filter: blur(4px);
-    }
-    .glow.g2 {
-      background: radial-gradient(closest-side, rgba(255,122,221,0.14), transparent 70%);
-      top: 30vmax;
-      left: 55%;
-      animation-duration: 34s;
-    }
-    @keyframes driftGlow {
-      0%   { transform: translate(0,0) scale(1) rotate(0deg) }
-      100% { transform: translate(4vmax,-2vmax) scale(1.06) rotate(12deg) }
-    }
-
-    /* =========================================================
-       UI WRAPPER
-       ========================================================= */
-    .ui {
-      position: relative;
-      z-index: 2;
-      height: 100vh;
       display: grid;
       grid-template-columns: 360px 1fr;
-      gap: var(--grid-gap);
+      gap: var(--gap);
       padding: 18px;
     }
-    @media (max-width: 1200px) {
-      .ui { grid-template-columns: 320px 1fr; }
-    }
-    @media (max-width: 980px) {
-      .ui { grid-template-columns: 1fr; }
+    @media (max-width: 1024px) {
+      .frame { grid-template-columns: 1fr }
     }
 
-    /* =========================================================
-       SIDEBAR
-       ========================================================= */
-    .sidebar {
-      height: calc(100vh - 36px);
+    .panel {
       background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
       backdrop-filter: blur(16px);
       border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-1), var(--shadow-inset);
+      border-radius: var(--r-lg);
+      padding: 12px;
       display: grid;
-      grid-template-rows: auto auto 1fr auto;
-      gap: 14px;
-      padding: 14px;
-    }
-    .brand {
-      display: flex;
-      align-items: center;
       gap: 12px;
-      padding: 8px 10px;
-      border-radius: var(--radius-md);
+    }
+
+    .brand {
+      display: flex; align-items: center; gap: 12px;
+      padding: 8px 10px; border-radius: var(--r-md);
       background: rgba(255,255,255,0.04);
       border: 1px dashed var(--border);
     }
-    .brand .logo {
-      width: 38px; height: 38px;
-      border-radius: 50%;
+    .logo {
+      width: 38px; height: 38px; border-radius: 50%;
       background: radial-gradient(circle at 30% 30%, var(--accent), var(--accent2));
       box-shadow: 0 0 0 6px rgba(90,240,255,0.12), 0 0 30px rgba(90,240,255,0.3);
     }
-    .brand .title {
-      font-weight: 800;
-      letter-spacing: -0.02em;
+    .title {
+      font-weight: 800; letter-spacing: -0.02em; font-size: 22px; line-height: 1.2;
       background: linear-gradient(90deg, var(--fg), var(--accent));
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-      font-size: 22px;
-      line-height: 1.2;
+      -webkit-background-clip: text; background-clip: text; color: transparent;
     }
-    .brand .sub {
-      font-size: 12px;
-      color: var(--muted);
-    }
+    .sub { font-size: 12px; color: var(--muted) }
 
-    .modeSelect {
-      display: grid;
-      gap: 10px;
-    }
-    .modeSelect h3 {
-      margin: 6px 0;
-      font-size: 14px;
-      color: var(--muted);
-      letter-spacing: 0.02em;
-    }
-    .chipbar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
+    .chipbar { display: flex; flex-wrap: wrap; gap: 8px }
     .chip {
-      padding: 10px 12px;
-      border-radius: 999px;
+      padding: 8px 12px; border-radius: 999px;
       border: 1px dashed var(--border);
       background: var(--glass);
       color: var(--fg);
-      font-size: 13px;
-      letter-spacing: 0.02em;
-      cursor: pointer;
-      user-select: none;
+      font-size: 12px; letter-spacing: 0.02em; cursor: pointer; user-select: none;
       transition: transform 150ms ease, background 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
     }
-    .chip:hover { transform: translateY(-2px); background: rgba(255,255,255,0.12); border-color: var(--border2) }
+    .chip:hover { transform: translateY(-2px); background: rgba(255,255,255,0.12) }
     .chip.active {
       background: rgba(90,240,255,0.12);
       border-color: rgba(90,240,255,0.38);
       box-shadow: 0 0 0 4px rgba(90,240,255,0.12);
     }
 
-    .controls {
-      display: grid;
-      gap: 12px;
-    }
-    .row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
     .btn {
-      padding: 10px 12px;
-      border-radius: var(--radius-sm);
-      background: #15183f;
-      color: var(--fg);
-      border: 1px solid var(--border);
-      cursor: pointer;
-      transition: transform 140ms ease, box-shadow 140ms ease, background 140ms ease;
+      padding: 10px 12px; border-radius: var(--r-sm);
+      background: #15183f; color: var(--fg); border: 1px solid var(--border);
+      cursor: pointer; transition: transform 140ms ease, box-shadow 140ms ease, background 140ms ease;
     }
-    .btn:hover { transform: translateY(-2px); box-shadow: var(--shadow-2); background: #1b1e4c }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 18px 40px rgba(0,0,0,0.35); background: #1b1e4c }
     .btn:active { transform: translateY(0) scale(0.98) }
 
-    .panel {
-      background: rgba(255,255,255,0.06);
+    .grid { display: grid; gap: 10px }
+    .row { display: flex; flex-wrap: wrap; gap: 8px }
+    .label { font-size: 12px; color: var(--muted) }
+    .input, .select {
+      padding: 9px 10px; border-radius: var(--r-sm);
       border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      padding: 12px;
-      display: grid;
-      gap: 10px;
-    }
-    .readout {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-    }
-    .metric {
-      background: rgba(255,255,255,0.05);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 10px;
-      text-align: center;
-    }
-    .metric b {
-      display: block;
+      background: rgba(255,255,255,0.08);
+      color: var(--fg);
+      outline: none;
       font-size: 12px;
-      color: var(--muted);
-      margin-bottom: 6px;
-      font-weight: 600;
-      letter-spacing: 0.02em;
     }
-    .metric span {
-      font-size: 18px;
-      font-weight: 700;
-      letter-spacing: 0.02em;
+    .range { -webkit-appearance: none; appearance: none; width: 100%; height: 8px; background: rgba(255,255,255,0.08); border: 1px solid var(--border); border-radius: 999px }
+    .range::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, var(--accent), var(--accent2));
+      border: 1px solid rgba(255,255,255,0.25);
+      box-shadow: 0 0 0 6px rgba(90,240,255,0.14), 0 0 24px rgba(90,240,255,0.28);
+      cursor: pointer;
     }
 
-    .footer {
-      display: grid;
-      gap: 8px;
-      color: var(--muted);
-      font-size: 12px;
-      padding-top: 6px;
-      border-top: 1px dashed var(--border);
+    .code {
+      background: rgba(0,0,0,0.4); border: 1px solid var(--border);
+      border-radius: var(--r-md); padding: 10px;
+      font-family: ui-monospace, Consolas, Menlo, Monaco, "SF Mono", monospace;
+      font-size: 12px; line-height: 1.5; white-space: pre; overflow: auto;
+      max-height: 200px;
     }
 
-    /* =========================================================
-       MAIN CANVAS OVERLAY HUD
-       ========================================================= */
     .hud {
       height: calc(100vh - 36px);
       background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
       backdrop-filter: blur(10px);
       border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-1), var(--shadow-inset);
+      border-radius: var(--r-lg);
       padding: 12px;
       display: grid;
-      grid-template-rows: auto 1fr auto;
+      grid-template-rows: auto auto 1fr auto;
       gap: 10px;
+      position: relative;
+      overflow: hidden;
     }
-    .hudHeader {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-    }
+    .hudHeader { display: flex; align-items: center; justify-content: space-between; gap: 10px }
     .hudTitle {
       font-size: clamp(24px, 4vw, 38px);
-      font-weight: 800;
-      letter-spacing: -0.02em;
+      font-weight: 800; letter-spacing: -0.02em;
       background: linear-gradient(90deg, var(--fg), var(--accent));
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
+      -webkit-background-clip: text; background-clip: text; color: transparent;
     }
-    .clock {
-      font-feature-settings: "tnum" 1, "lnum" 1;
-      font-variant-numeric: tabular-nums lining-nums;
-      font-size: 14px;
-      color: var(--muted);
-    }
-
-    .legend {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      font-size: 12px;
-      color: var(--muted);
-    }
-    .legend .k {
-      padding: 6px 10px;
-      border-radius: 999px;
-      background: rgba(255,255,255,0.06);
-      border: 1px solid var(--border);
-    }
-
-    .hudFooter {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-      color: var(--muted);
-      font-size: 12px;
-      padding-top: 6px;
-      border-top: 1px dashed var(--border);
-    }
+    .legend { display: flex; flex-wrap: wrap; gap: 8px; font-size: 12px; color: var(--muted) }
+    .legend .k { padding: 6px 10px; border-radius: 999px; background: rgba(255,255,255,0.06); border: 1px solid var(--border) }
+    .hudFooter { display: flex; justify-content: space-between; align-items: center; gap: 10px; color: var(--muted); font-size: 12px; padding-top: 6px; border-top: 1px dashed var(--border) }
 
     /* =========================================================
-       CUSTOM CURSOR
+       CANVASES
        ========================================================= */
+    .layer { position: fixed; inset: 0 }
+    canvas#stage { position: absolute; inset: 0; z-index: 0; filter: saturate(1.05) contrast(1.04) }
+    canvas#fx { position: absolute; inset: 0; z-index: 1; pointer-events: none }
+    canvas#uiVis { position: absolute; inset: 0; z-index: 2; pointer-events: none }
+
     .cursor {
-      position: fixed;
-      width: 22px;
-      height: 22px;
-      margin-left: -11px;
-      margin-top: -11px;
-      border-radius: 50%;
-      pointer-events: none;
-      z-index: 10;
+      position: fixed; width: 22px; height: 22px; margin-left: -11px; margin-top: -11px;
+      border-radius: 50%; pointer-events: none; z-index: 10;
       box-shadow: 0 0 0 6px rgba(90,240,255,0.14), 0 0 28px rgba(90,240,255,0.3);
       background: radial-gradient(circle at 30% 30%, var(--accent), var(--accent2));
       transform: translate3d(-100px,-100px,0);
@@ -335,391 +177,238 @@
       mix-blend-mode: screen;
     }
 
-    /* =========================================================
-       MINI CONSOLE
-       ========================================================= */
-    .console {
-      position: absolute;
-      right: 18px;
-      bottom: 18px;
-      width: min(520px, 92vw);
-      height: 160px;
-      background: rgba(0,0,0,0.45);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      backdrop-filter: blur(12px);
-      box-shadow: var(--shadow-2), var(--shadow-inset);
-      overflow: hidden;
-      display: grid;
-      grid-template-rows: auto 1fr auto;
-      z-index: 4;
-    }
-    .consoleHeader {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 8px 10px;
-      border-bottom: 1px dashed var(--border);
-      font-size: 12px;
-      color: var(--muted);
-    }
-    .consoleBody {
-      padding: 8px;
-      overflow: auto;
-      font-size: 12px;
-      line-height: 1.4;
-    }
-    .consoleFooter {
-      padding: 6px;
-      border-top: 1px dashed var(--border);
-      display: flex;
-      gap: 8px;
-    }
-    .consoleInput {
-      flex: 1;
-      padding: 8px 10px;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,0.08);
-      color: var(--fg);
-      outline: none;
-    }
-
-    /* =========================================================
-       MODAL
-       ========================================================= */
-    .modalMask {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.6);
-      backdrop-filter: blur(4px);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 9;
-    }
-    .modal {
-      width: min(760px, 92vw);
-      background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04));
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 18px;
-      box-shadow: var(--shadow-1), var(--shadow-inset);
-      display: grid;
-      gap: 12px;
-    }
-    .modal h2 {
-      margin: 0;
-      font-size: 24px;
-      font-weight: 800;
-      background: linear-gradient(90deg, var(--fg), var(--accent));
-      -webkit-background-clip: text; background-clip: text; color: transparent;
-    }
-    .modal p {
-      margin: 0;
-      color: var(--muted);
-    }
-    .modalActions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 8px;
-    }
-
-    /* =========================================================
-       TOAST
-       ========================================================= */
     .toast {
-      position: fixed;
-      left: 50%;
-      transform: translateX(-50%);
-      bottom: 18px;
-      max-width: 560px;
-      width: calc(100% - 36px);
-      background: rgba(0,0,0,0.5);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      padding: 10px;
-      box-shadow: var(--shadow-2);
-      font-size: 13px;
-      color: var(--fg);
-      z-index: 8;
-      display: none;
+      position: fixed; left: 50%; transform: translateX(-50%); bottom: 18px;
+      max-width: 560px; width: calc(100% - 36px);
+      background: rgba(0,0,0,0.5); border: 1px solid var(--border);
+      border-radius: var(--r-md); padding: 10px; box-shadow: 0 18px 40px rgba(0,0,0,0.35); font-size: 13px; color: var(--fg); z-index: 8; display: none;
     }
 
-    /* =========================================================
-       TABS + BUILDER PANEL
-       ========================================================= */
-    .tabs {
-      display: flex;
-      gap: 8px;
-      border-bottom: 1px dashed var(--border);
-      padding-bottom: 8px;
-    }
-    .tab {
-      padding: 8px 12px;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,0.06);
-      cursor: pointer;
-      font-size: 13px;
-    }
-    .tab.active {
-      border-color: rgba(90,240,255,0.42);
-      background: rgba(90,240,255,0.12);
-      box-shadow: 0 0 0 4px rgba(90,240,255,0.12);
-    }
+    .tabs { display: flex; gap: 8px; border-bottom: 1px dashed var(--border); padding-bottom: 6px }
+    .tab { padding: 8px 12px; border-radius: var(--r-sm); border: 1px solid var(--border); background: rgba(255,255,255,0.06); cursor: pointer; font-size: 13px }
+    .tab.active { border-color: rgba(90,240,255,0.42); background: rgba(90,240,255,0.12); box-shadow: 0 0 0 4px rgba(90,240,255,0.12) }
 
-    .builder {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-    @media (max-width: 980px) {
-      .builder { grid-template-columns: 1fr; }
-    }
-
-    .formGrid {
-      display: grid;
-      gap: 10px;
-    }
-    .field {
-      display: grid;
-      gap: 6px;
-    }
-    .label {
-      font-size: 12px;
-      color: var(--muted);
-    }
-    .input, .select {
-      padding: 10px 12px;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,0.08);
-      color: var(--fg);
-      outline: none;
-    }
-    .range {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 100%;
-      height: 8px;
-      background: rgba(255,255,255,0.08);
-      border: 1px solid var(--border);
-      border-radius: 999px;
-    }
-    .range::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 18px; height: 18px;
-      border-radius: 50%;
-      background: radial-gradient(circle at 30% 30%, var(--accent), var(--accent2));
-      border: 1px solid var(--border2);
-      box-shadow: 0 0 0 6px rgba(90,240,255,0.14), 0 0 24px rgba(90,240,255,0.28);
-      cursor: pointer;
-    }
-
-    .codePreview {
-      background: rgba(0,0,0,0.4);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      padding: 10px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      font-size: 12px;
-      line-height: 1.4;
-      white-space: pre;
-      overflow: auto;
-    }
-
-    /* =========================================================
-       AUDIO VIS
-       ========================================================= */
-    .audioBar {
-      height: 8px;
-      background: linear-gradient(90deg, var(--accent), var(--accent2));
-      border-radius: 999px;
-      box-shadow: 0 0 0 4px rgba(90,240,255,0.10);
-      transform-origin: left center;
-      transform: scaleX(0.2);
-      transition: transform 120ms ease;
-    }
-
-    /* =========================================================
-       MISC
-       ========================================================= */
-    .hidden { display: none !important; }
-    .flex { display: flex; gap: 8px; align-items: center; }
+    .hidden { display: none !important }
   </style>
 </head>
 <body>
-  <!-- BACKGROUND LAYERS -->
   <div class="layer">
-    <canvas id="cityCanvas"></canvas>
-    <div class="atmosphere">
-      <div class="glow"></div>
-      <div class="glow g2"></div>
-    </div>
+    <canvas id="stage"></canvas>
+    <canvas id="fx"></canvas>
+    <canvas id="uiVis"></canvas>
   </div>
 
-  <!-- UI -->
-  <div class="ui">
-    <aside class="sidebar">
+  <div class="frame">
+    <aside class="panel" id="sidebar">
       <div class="brand">
         <div class="logo"></div>
         <div>
-          <div class="title">Procedural Metropolis</div>
-          <div class="sub">Dinamik şehir sahnesi • Etkileşimli sanat</div>
+          <div class="title">Omni Playground</div>
+          <div class="sub">Hyper etkileşimli sanat + fizik + animasyon</div>
         </div>
       </div>
 
-      <div class="modeSelect">
-        <h3>Sahne modu</h3>
+      <div class="grid">
+        <div class="label">Sahne modları</div>
         <div class="chipbar" id="modeChips">
           <div class="chip active" data-mode="city">Şehir</div>
-          <div class="chip" data-mode="neon">Neon Rüyası</div>
-          <div class="chip" data-mode="waves">Dalga Alanı</div>
-          <div class="chip" data-mode="orbits">Yörünge</div>
-          <div class="chip" data-mode="rain">Holografik Yağmur</div>
           <div class="chip" data-mode="aurora">Aurora</div>
+          <div class="chip" data-mode="neon">Neon Dalga</div>
+          <div class="chip" data-mode="ocean">Okyanus</div>
+          <div class="chip" data-mode="forest">Orman</div>
+          <div class="chip" data-mode="space">Uzay</div>
           <div class="chip" data-mode="fireworks">Havai fişek</div>
-          <div class="chip" data-mode="grid">İzometrik Izgara</div>
+          <div class="chip" data-mode="metaballs">Metaballs</div>
+          <div class="chip" data-mode="grid">Izometrik</div>
+          <div class="chip" data-mode="character">Karakter</div>
+          <div class="chip" data-mode="cloth">Kumaş</div>
+          <div class="chip" data-mode="soccer">Futbol RNG</div>
         </div>
       </div>
 
-      <div class="controls">
+      <div class="grid">
         <div class="row">
           <button class="btn" id="btnBurst">Patlat</button>
           <button class="btn" id="btnClear">Temizle</button>
           <button class="btn" id="btnShuffle">Karıştır</button>
           <button class="btn" id="btnNight">Gece/Gündüz</button>
+          <button class="btn" id="btnScreenshot">PNG</button>
         </div>
-        <div class="panel">
-          <div class="readout">
-            <div class="metric"><b>FPS</b><span id="fps">0</span></div>
-            <div class="metric"><b>Obj.</b><span id="objCount">0</span></div>
-            <div class="metric"><b>Mod</b><span id="modeLabel">Şehir</span></div>
-          </div>
+
+        <div class="row">
+          <button class="btn" id="btnDemo">Demo tur</button>
+          <button class="btn" id="btnPerf">Performans+</button>
+          <button class="btn" id="btnSlowMo">Slow-mo</button>
+          <button class="btn" id="btnAudio">Ambiyans</button>
         </div>
       </div>
 
       <div class="panel">
         <div class="tabs" id="tabs">
-          <div class="tab active" data-tab="builder">Sahne kurucu</div>
-          <div class="tab" data-tab="audio">Ses</div>
+          <div class="tab active" data-tab="builder">Kurucu</div>
+          <div class="tab" data-tab="physics">Fizik</div>
           <div class="tab" data-tab="console">Komutlar</div>
         </div>
 
-        <div class="builder" id="tab-builder">
-          <div class="formGrid">
-            <div class="field">
-              <div class="label">Bina sayısı</div>
-              <input class="range" id="inpBuildings" type="range" min="30" max="400" value="140" />
-            </div>
-            <div class="field">
-              <div class="label">Parçacık yoğunluğu</div>
-              <input class="range" id="inpDensity" type="range" min="0" max="100" value="42" />
-            </div>
-            <div class="field">
-              <div class="label">Rüzgar</div>
-              <input class="range" id="inpWind" type="range" min="-100" max="100" value="12" />
-            </div>
-            <div class="field">
-              <div class="label">Işık parlaması</div>
-              <input class="range" id="inpGlow" type="range" min="0" max="100" value="35" />
-            </div>
-            <div class="field">
-              <div class="label">Renk paleti</div>
-              <select class="select" id="inpPalette">
-                <option value="ocean">Ocean</option>
-                <option value="sunset">Sunset</option>
-                <option value="candy">Candy</option>
-                <option value="mono">Mono</option>
-                <option value="aurora">Aurora</option>
-              </select>
+        <div id="tab-builder">
+          <div class="grid">
+            <div class="label">Parametreler</div>
+            <div class="row">
+              <div style="flex:1">
+                <div class="label">Bina sayısı</div>
+                <input class="range" id="inpBuildings" type="range" min="30" max="600" value="160" />
+              </div>
+              <div style="flex:1">
+                <div class="label">Yoğunluk</div>
+                <input class="range" id="inpDensity" type="range" min="0" max="100" value="42" />
+              </div>
             </div>
             <div class="row">
-              <button class="btn" id="btnRebuild">Yeniden kur</button>
-              <button class="btn" id="btnExport">Export PNG</button>
-              <button class="btn" id="btnModal">Hakkında</button>
+              <div style="flex:1">
+                <div class="label">Rüzgar</div>
+                <input class="range" id="inpWind" type="range" min="-100" max="100" value="12" />
+              </div>
+              <div style="flex:1">
+                <div class="label">Parlama</div>
+                <input class="range" id="inpGlow" type="range" min="0" max="100" value="35" />
+              </div>
+            </div>
+            <div class="row">
+              <div style="flex:1">
+                <div class="label">Palet</div>
+                <select class="select" id="inpPalette">
+                  <option value="ocean">Ocean</option>
+                  <option value="sunset">Sunset</option>
+                  <option value="candy">Candy</option>
+                  <option value="mono">Mono</option>
+                  <option value="aurora">Aurora</option>
+                </select>
+              </div>
+              <div style="flex:1">
+                <div class="label">Işıklar</div>
+                <select class="select" id="inpLights">
+                  <option value="pulse">Pulse</option>
+                  <option value="spark">Spark</option>
+                  <option value="soft">Soft</option>
+                </select>
+              </div>
             </div>
           </div>
 
-          <div class="codePreview" id="codePreview">// Burada sahne parametrelerinin canlı JSON önizlemesi görünecek.</div>
+          <div class="code" id="codePreview">// JSON parametreleri burada</div>
         </div>
 
-        <div id="tab-audio" class="hidden">
-          <div class="panel">
-            <div class="label">Gürültü synth (ambiyans)</div>
+        <div id="tab-physics" class="hidden">
+          <div class="grid">
+            <div class="label">Fizik motoru parametreleri</div>
             <div class="row">
-              <button class="btn" id="btnAudioToggle">Başlat/Durdur</button>
-              <button class="btn" id="btnAudioPulse">Nabız</button>
-              <button class="btn" id="btnAudioShift">Renk eşle</button>
+              <div style="flex:1">
+                <div class="label">Yerçekimi</div>
+                <input class="range" id="inpGravity" type="range" min="-2" max="2" value="0.6" step="0.1" />
+              </div>
+              <div style="flex:1">
+                <div class="label">Sürtünme</div>
+                <input class="range" id="inpFriction" type="range" min="0.80" max="1.0" value="0.96" step="0.01" />
+              </div>
             </div>
-            <div class="label">Seviye</div>
-            <div class="audioBar" id="audioBar"></div>
+            <div class="row">
+              <div style="flex:1">
+                <div class="label">Yay sertliği</div>
+                <input class="range" id="inpSpringK" type="range" min="0.1" max="2.0" value="0.8" step="0.1" />
+              </div>
+              <div style="flex:1">
+                <div class="label">Yay sönüm</div>
+                <input class="range" id="inpSpringD" type="range" min="0.0" max="1.0" value="0.2" step="0.05" />
+              </div>
+            </div>
+            <div class="row">
+              <button class="btn" id="btnResetCloth">Kumaşı sıfırla</button>
+              <button class="btn" id="btnSpawnRope">Halat ekle</button>
+              <button class="btn" id="btnSpawnBalls">Toplar</button>
+              <button class="btn" id="btnClearPhysics">Fizik temizle</button>
+            </div>
           </div>
         </div>
 
         <div id="tab-console" class="hidden">
-          <div class="panel">
+          <div class="grid">
             <div class="label">Mini komut konsolu</div>
             <div class="row">
-              <input class="input" id="cmdInput" placeholder="Örnek: mode neon; burst 3; palette aurora" />
+              <input class="input" id="cmdInput" placeholder="Örnek: mode ocean; burst 3; palette aurora; gravity 0.8" />
               <button class="btn" id="btnRun">Çalıştır</button>
             </div>
-            <div class="codePreview" id="cmdLog">// Çıktılar burada.</div>
+            <div class="code" id="cmdLog">// Çıktılar burada.</div>
           </div>
         </div>
       </div>
 
-      <div class="footer">
-        <div>Space: patlat • C: temizle • M: mod • N: gece/gündüz • Drag: sürükle-iz • Shift+Drag: güçlü</div>
-        <div id="clock">—:—:—</div>
+      <div class="panel">
+        <div class="row">
+          <div style="flex:1">
+            <div class="label">FPS</div>
+            <div class="code" id="fpsBox">0</div>
+          </div>
+          <div style="flex:1">
+            <div class="label">Objeler</div>
+            <div class="code" id="objBox">0</div>
+          </div>
+          <div style="flex:1">
+            <div class="label">Mod</div>
+            <div class="code" id="modeBox">Şehir</div>
+          </div>
+        </div>
+        <div class="row">
+          <div style="flex:1">
+            <div class="label">Saat</div>
+            <div class="code" id="clock">—:—:—</div>
+          </div>
+          <div style="flex:1">
+            <div class="label">Durum</div>
+            <div class="code" id="statusBox">Hazır</div>
+          </div>
+        </div>
       </div>
     </aside>
 
     <main class="hud">
       <div class="hudHeader">
-        <div class="hudTitle">Procedural Metropolis sahnesi</div>
-        <div class="clock" id="hudClock">—:—:—</div>
+        <div class="hudTitle">Omni Playground sahnesi</div>
+        <div class="label" id="hudClock">—:—:—</div>
       </div>
 
-      <div class="legend">
-        <div class="k">Şehir modunda: binalar, ışık pikselleri ve trafikli parçacıklar</div>
-        <div class="k">Modu değiştirip tamamen farklı bir görsel dünya açabilirsin</div>
-        <div class="k">Parametrelerle oyna; her şeyi gerçek zamanlı değiştir</div>
+      <div class="legend" id="legend">
+        <div class="k">Space: Patlat • C: Temizle • M: Mod • N: Gece • S: Slow-mo • R: Rastgele</div>
+        <div class="k">Shift+Drag: Güçlü • Ctrl+Click: Yeni halat düğümü • Alt: Metaball ekle</div>
+        <div class="k">Karakter modunda Q/E: Omuz; A/D: Dirsek; W/S: Bilek</div>
       </div>
 
       <div class="hudFooter">
-        <div id="sceneHint">İpucu: Mouse’u hareket ettir, kenarlara yaklaşınca rüzgar artar.</div>
+        <div id="sceneHint">İpucu: Kenarlara yaklaştıkça rüzgâr artar.</div>
         <div id="sceneStatus">Durum: Hazır</div>
       </div>
     </main>
   </div>
 
   <div class="cursor" id="cursor"></div>
-
-  <div class="modalMask" id="modalMask">
-    <div class="modal">
-      <h2>Hakkında</h2>
-      <p>Procedural Metropolis — etkileşimli bir sanat ve simülasyon playground’u. Modları değiştir, parametreleri kur, patlat ve kaydet. Sahneler gerçek zamanlı olarak üretildiği için her an farklı bir görüntü oluşur.</p>
-      <p>Öneri: Paleti “aurora” yapıp mod “aurora” ve “yörünge” arasında geçiş dene; gece modunda dramatik sonuçlar verir.</p>
-      <div class="modalActions">
-        <button class="btn" id="btnModalClose">Kapat</button>
-      </div>
-    </div>
-  </div>
-
   <div class="toast" id="toast"></div>
 
   <script>
     /* =========================================================
-       UTILITIES
+       BOOT
        ========================================================= */
     const DPR = Math.min(2, devicePixelRatio || 1);
-    const canvas = document.getElementById('cityCanvas');
-    const ctx = canvas.getContext('2d');
-    let W = canvas.width = innerWidth;
-    let H = canvas.height = innerHeight;
-    canvas.width = W * DPR; canvas.height = H * DPR; ctx.scale(DPR, DPR);
+    const stage = document.getElementById('stage');
+    const fx = document.getElementById('fx');
+    const uiVis = document.getElementById('uiVis');
+    const ctx = stage.getContext('2d');
+    const ctxFx = fx.getContext('2d');
+    const ctxUi = uiVis.getContext('2d');
+
+    let W = stage.width = innerWidth;
+    let H = stage.height = innerHeight;
+    stage.width = W * DPR; stage.height = H * DPR; ctx.scale(DPR, DPR);
+    fx.width = W * DPR; fx.height = H * DPR; ctxFx.scale(DPR, DPR);
+    uiVis.width = W * DPR; uiVis.height = H * DPR; ctxUi.scale(DPR, DPR);
 
     const rand = (a=1,b=0)=> b + (a-b)*Math.random();
     const randi = (a,b)=> Math.floor(rand(a,b+1));
@@ -729,10 +418,18 @@
 
     const hueToRgb = (h, s=100, l=60, a=1)=> `hsla(${h}, ${s}%, ${l}%, ${a})`;
 
-    function gradientRadial(x,y,r,stops) {
-      const g = ctx.createRadialGradient(x,y,0,x,y,r);
-      stops.forEach(([pos, color])=> g.addColorStop(pos, color));
-      return g;
+    function vignette(alpha=0.35){
+      const g = ctx.createRadialGradient(W/2,H/2,0,W/2,H/2,Math.max(W,H)*0.8);
+      g.addColorStop(0, 'rgba(0,0,0,0)');
+      g.addColorStop(1, `rgba(0,0,0,${alpha})`);
+      ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+    }
+
+    function radialGlow(c, x,y,r){
+      const g = c.createRadialGradient(x,y,0,x,y,r);
+      g.addColorStop(0, 'rgba(255,255,255,0.2)');
+      g.addColorStop(1, 'rgba(255,255,255,0)');
+      c.fillStyle = g; c.beginPath(); c.arc(x,y,r,0,TAU); c.fill();
     }
 
     function showToast(text, ms=2000) {
@@ -759,81 +456,41 @@
     const state = {
       mode: 'city',
       night: false,
-      objects: [],
-      particles: [],
-      lights: [],
-      wind: 12,
-      density: 42,
-      buildings: 140,
-      glow: 35,
-      palette: 'ocean',
       fps: 0,
+      slow: false,
+      perfBoost: false,
       mouse: { x: W/2, y: H/2, down: false, vx: 0, vy: 0 },
-      t: performance.now(),
-      burstQueue: 0,
-      orbiters: [],
-      ripples: [],
-      rainDrops: [],
+      params: {
+        wind: 12, density: 42, buildings: 160, glow: 35, palette: 'ocean', lights: 'pulse',
+      },
+      physics: {
+        g: 0.6, friction: 0.96, k: 0.8, d: 0.2
+      },
+      city: { roadY: H*0.72, buildings: [], lights: [] },
+      particles: [],
       fireworks: [],
+      aurora: [],
+      neon: [],
+      ocean: { waves: [], foam: [] },
+      forest: { trees: [], fireflies: [] },
+      space: { stars: [], orbits: [] },
+      metaballs: [],
       gridCells: [],
-      waveField: [],
-      audio: { ctx: null, node: null, running: false, gain: 0.15 }
+      character: { rig: null, pose: { s:0, e:0, w:0 }, waving: false },
+      cloth: { points: [], springs: [], size: { cols: 32, rows: 24 }, anchor: {x: W*0.65, y: H*0.25} },
+      soccer: { teams: [], draws: [], history: [] },
+      t: performance.now()
     };
-
-    function updatePreview() {
-      const obj = {
-        mode: state.mode,
-        night: state.night,
-        wind: state.wind,
-        density: state.density,
-        buildings: state.buildings,
-        glow: state.glow,
-        palette: state.palette
-      };
-      document.getElementById('codePreview').textContent = JSON.stringify(obj, null, 2);
-      document.getElementById('modeLabel').textContent = labelMode(state.mode);
-    }
-
-    function labelMode(m) {
-      return m==='city'?'Şehir':
-             m==='neon'?'Neon Rüyası':
-             m==='waves'?'Dalga Alanı':
-             m==='orbits'?'Yörünge':
-             m==='rain'?'Holografik Yağmur':
-             m==='aurora'?'Aurora':
-             m==='fireworks'?'Havai fişek':
-             m==='grid'?'İzometrik Izgara': m;
-    }
 
     /* =========================================================
        PALETTES
        ========================================================= */
     const palettes = {
-      ocean: {
-        bg: ['#0e1024', '#0a0b18'],
-        hues: [190, 200, 210, 220, 230],
-        accents: [180, 195, 205, 215],
-      },
-      sunset: {
-        bg: ['#211019', '#0b0a16'],
-        hues: [12, 22, 32, 42, 52],
-        accents: [320, 342, 12, 38],
-      },
-      candy: {
-        bg: ['#1b1021', '#0c0a18'],
-        hues: [300, 330, 0, 40, 200],
-        accents: [300, 0, 200, 40],
-      },
-      mono: {
-        bg: ['#121212', '#0b0b0b'],
-        hues: [0, 0, 0, 0, 0],
-        accents: [0, 60, 120, 180, 240],
-      },
-      aurora: {
-        bg: ['#101437', '#0a0b18'],
-        hues: [150, 180, 210, 270, 300],
-        accents: [160, 190, 220, 280],
-      }
+      ocean: { bg: ['#0e1024', '#0a0b18'], hues: [190, 200, 210, 220, 230], accents: [180, 195, 205, 215] },
+      sunset: { bg: ['#211019', '#0b0a16'], hues: [12, 22, 32, 42, 52], accents: [320, 342, 12, 38] },
+      candy: { bg: ['#1b1021', '#0c0a18'], hues: [300, 330, 0, 40, 200], accents: [300, 0, 200, 40] },
+      mono: { bg: ['#121212', '#0b0b0b'], hues: [0, 0, 0, 0, 0], accents: [0, 60, 120, 180, 240] },
+      aurora: { bg: ['#101437', '#0a0b18'], hues: [150, 180, 210, 270, 300], accents: [160, 190, 220, 280] }
     };
 
     function applyPalette(name) {
@@ -843,221 +500,141 @@
       document.body.style.setProperty('--accent2', hueToRgb(p.accents[1], 80, 60));
       document.body.style.setProperty('--accent3', hueToRgb((p.accents[2]||p.accents[0]), 80, 60));
     }
-    applyPalette(state.palette);
+    applyPalette(state.params.palette);
+
+    function updatePreview(){
+      const summary = {
+        mode: state.mode,
+        night: state.night,
+        wind: state.params.wind,
+        density: state.params.density,
+        buildings: state.params.buildings,
+        glow: state.params.glow,
+        palette: state.params.palette,
+        lights: state.params.lights,
+        physics: state.physics
+      };
+      document.getElementById('codePreview').textContent = JSON.stringify(summary, null, 2);
+      document.getElementById('modeBox').textContent = labelMode(state.mode);
+    }
+
+    function labelMode(m) {
+      return m==='city'?'Şehir':
+             m==='aurora'?'Aurora':
+             m==='neon'?'Neon Dalga':
+             m==='ocean'?'Okyanus':
+             m==='forest'?'Orman':
+             m==='space'?'Uzay':
+             m==='fireworks'?'Havai fişek':
+             m==='metaballs'?'Metaballs':
+             m==='grid'?'Izometrik':
+             m==='character'?'Karakter':
+             m==='cloth'?'Kumaş':
+             m==='soccer'?'Futbol RNG': m;
+    }
 
     /* =========================================================
-       CITY GENERATION
+       NOISE (SIMPLE)
        ========================================================= */
-    function rebuildCity() {
-      state.objects = [];
-      state.lights = [];
-      state.particles = [];
-      state.orbiters = [];
-      state.ripples = [];
-      state.rainDrops = [];
-      state.fireworks = [];
-      state.gridCells = [];
-      state.waveField = [];
+    function makeNoise(seed= randi(0,100000)){
+      const s = seed;
+      return (x,y=0,z=0)=>{
+        const n = Math.sin((x*12.9898 + y*78.233 + z*37.719 + s) * 43758.5453);
+        return n - Math.floor(n);
+      };
+    }
+    const noise = makeNoise();
 
-      const groundY = H*0.72;
-      const buildingCount = state.buildings;
-      const lanes = 3;
-      const laneH = 14;
-
-      state.objects.push({ kind:'road', y: groundY, lanes, laneH });
-
-      for (let i=0;i<buildingCount;i++) {
-        const bw = rand(40, 140);
-        const bh = rand(60, 500);
-        const bx = rand(-W*0.1, W*1.2);
-        const by = groundY - bh;
-        const hue = (palettes[state.palette].hues[i % palettes[state.palette].hues.length] + randi(-20,20)) % 360;
-        const windows = randi(3, 8);
-        const cols = randi(2, 6);
-        state.objects.push({
-          kind:'building',
-          x: bx, y: by, w: bw, h: bh,
-          hue, windows, cols,
-          glow: rand(0.2, 0.8),
-          skew: rand(-0.06, 0.06)
-        });
+    /* =========================================================
+       CITY
+       ========================================================= */
+    function rebuildCity(){
+      state.city.buildings = [];
+      state.city.lights = [];
+      const roadY = state.city.roadY = H*0.72;
+      const count = state.params.buildings;
+      for (let i=0;i<count;i++){
+        const w = rand(40, 140);
+        const h = rand(60, 520);
+        const x = rand(-W*0.1, W*1.2);
+        const y = roadY - h;
+        const hue = (palettes[state.params.palette].hues[i % palettes[state.params.palette].hues.length] + randi(-20,20)) % 360;
+        const windows = randi(3,9); const cols = randi(2,6);
+        state.city.buildings.push({ x,y,w,h,hue,windows,cols, skew: rand(-0.06, 0.06) });
       }
-
-      for (let i=0;i<randi(50,120);i++) {
-        const x = rand(0, W);
-        const y = groundY + rand(8, 60);
+      for (let i=0;i<randi(50,160);i++){
+        const x = rand(0,W);
+        const y = roadY + rand(8,60);
         const hue = randi(0,360);
-        state.lights.push({
-          x,y,hue, life: randi(60, 160), pulse: rand(0.4, 1.4)
-        });
+        state.city.lights.push({ x,y,hue, life: randi(60,160), pulse: rand(0.4,1.4) });
       }
-
-      for (let i=0;i<randi(12, 24);i++) {
-        state.orbiters.push({
-          r: rand(40, 260),
-          a: rand(0, TAU),
-          s: rand(0.004, 0.016),
-          hue: randi(0,360),
-          w: rand(2, 7)
-        });
-      }
-
-      const cols = 40;
-      const rows = 22;
-      for (let y=0;y<rows;y++) {
-        const row = [];
-        for (let x=0;x<cols;x++) {
-          row.push({ z: 0 });
-        }
-        state.waveField.push(row);
-      }
-
-      const gCols = 28;
-      const gRows = 16;
-      for (let y=0;y<gRows;y++) {
-        for (let x=0;x<gCols;x++) {
-          state.gridCells.push({
-            x, y,
-            h: rand(6, 80),
-            hue: randi(0,360),
-            pulse: rand(0.6, 1.6),
-          });
-        }
-      }
-
-      updatePreview();
-      showToast('Sahne yeniden kuruldu.');
     }
     rebuildCity();
 
-    /* =========================================================
-       DRAWING
-       ========================================================= */
-    function drawRoad(road) {
-      const { y, lanes, laneH } = road;
-      ctx.save();
-
-      ctx.fillStyle = 'rgba(20,22,40,0.9)';
-      ctx.fillRect(0, y, W, H - y);
-
-      ctx.strokeStyle = 'rgba(240,240,255,0.18)';
-      ctx.lineWidth = 2;
-      for (let i=0;i<lanes;i++) {
+    function drawRoad(){
+      const y = state.city.roadY;
+      ctx.fillStyle = 'rgba(20,22,40,0.9)'; ctx.fillRect(0,y,W,H-y);
+      ctx.strokeStyle = 'rgba(240,240,255,0.18)'; ctx.lineWidth = 2; ctx.setLineDash([12,14]);
+      const lanes = 3; const laneH = 14;
+      for (let i=0;i<lanes;i++){
         const ly = y + i*laneH + laneH*0.5;
-        ctx.setLineDash([12, 14]);
-        ctx.beginPath();
-        ctx.moveTo(0, ly);
-        ctx.lineTo(W, ly);
-        ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, ly); ctx.lineTo(W, ly); ctx.stroke();
       }
-
-      ctx.restore();
+      ctx.setLineDash([]);
     }
 
-    function drawBuilding(b) {
-      ctx.save();
-      ctx.translate(b.x, b.y);
-      ctx.transform(1, 0, b.skew, 1, 0, 0);
+    function drawBuilding(b){
+      ctx.save(); ctx.translate(b.x, b.y); ctx.transform(1,0,b.skew,1,0,0);
+      const col = hueToRgb(b.hue, 50, state.night?28:42, 1);
+      ctx.fillStyle = col; ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1;
+      ctx.fillRect(0,0,b.w,b.h); ctx.strokeRect(0,0,b.w,b.h);
 
-      const col = hueToRgb(b.hue, 50, state.night ? 28 : 42, 1);
-      ctx.fillStyle = col;
-      ctx.strokeStyle = 'rgba(255,255,255,0.06)';
-      ctx.lineWidth = 1;
-      ctx.fillRect(0, 0, b.w, b.h);
-      ctx.strokeRect(0, 0, b.w, b.h);
+      const g = ctx.createRadialGradient(b.w*0.5, 10, 0, b.w*0.5, 10, b.w*0.6);
+      g.addColorStop(0, hueToRgb((b.hue+40)%360,80,70, 0.10*state.params.glow/50));
+      g.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(b.w*0.5,10,b.w*0.6,0,TAU); ctx.fill();
 
-      const g = gradientRadial(b.w*0.5, 10, b.w*0.6, [
-        [0, hueToRgb((b.hue+40)%360, 80, 70, 0.10*state.glow/50)],
-        [1, 'rgba(255,255,255,0)']
-      ]);
-      ctx.fillStyle = g;
-      ctx.beginPath(); ctx.arc(b.w*0.5, 10, b.w*0.6, 0, TAU); ctx.fill();
-
-      const wPad = 8;
-      const hPad = 10;
+      const wPad = 8, hPad=10;
       const winW = (b.w - wPad*2) / b.cols;
       const winH = (b.h - hPad*2) / b.windows;
-      for (let r=0;r<b.windows;r++) {
-        for (let c=0;c<b.cols;c++) {
+      for (let r=0;r<b.windows;r++){
+        for (let c=0;c<b.cols;c++){
           const wx = wPad + c*winW + winW*0.08;
           const wy = hPad + r*winH + winH*0.08;
-          const ww = winW * 0.84;
-          const wh = winH * 0.74;
-
+          const ww = winW * 0.84; const wh = winH * 0.74;
           const on = Math.random() > 0.26;
           const lh = (b.hue + (on? r*c : 180)) % 360;
           const alpha = on ? rand(0.18, 0.65) : 0.08;
-          ctx.fillStyle = hueToRgb(lh, 70, state.night ? 64 : 74, alpha);
+          ctx.fillStyle = hueToRgb(lh, 70, state.night?64:74, alpha);
           ctx.fillRect(wx, wy, ww, wh);
         }
       }
-
       ctx.restore();
     }
 
-    function drawLights() {
-      for (let i=state.lights.length-1;i>=0;i--) {
-        const l = state.lights[i];
-        l.life--;
+    function drawCityLights(){
+      for (let i=state.city.lights.length-1;i>=0;i--){
+        const l = state.city.lights[i]; l.life--;
         l.pulse += Math.sin(performance.now()*0.002 + i)*0.01;
-        const r = 18 + 10*Math.sin(l.pulse);
-        const g = gradientRadial(l.x, l.y, r, [
-          [0, hueToRgb(l.hue, 100, 70, 0.20)],
-          [0.5, hueToRgb(l.hue, 100, 60, 0.08)],
-          [1, 'rgba(255,255,255,0)']
-        ]);
-        ctx.fillStyle = g;
+        const r = state.params.lights==='spark' ? 12 + 10*Math.sin(l.pulse) : 18 + 10*Math.sin(l.pulse);
+        const gg = ctx.createRadialGradient(l.x,l.y,0,l.x,l.y,r);
+        let a1 = 0.20, a2 = 0.08;
+        if (state.params.lights==='soft'){ a1=0.12; a2=0.04 }
+        if (state.params.lights==='spark'){ a1=0.30; a2=0.10 }
+        gg.addColorStop(0, hueToRgb(l.hue,100,70,a1));
+        gg.addColorStop(0.5, hueToRgb(l.hue,100,60,a2));
+        gg.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = gg;
         ctx.fillRect(l.x-r, l.y-r, r*2, r*2);
-        if (l.life <= 0) state.lights.splice(i,1);
+        if (l.life<=0) state.city.lights.splice(i,1);
       }
     }
 
-    function drawParticles() {
-      const gWind = state.wind * 0.01;
-      for (let i=state.particles.length-1;i>=0;i--) {
-        const p = state.particles[i];
-        p.vx += gWind + rand(-0.02, 0.02);
-        p.vy += p.g;
-        p.vx *= 0.992;
-        p.vy *= 0.992;
-        p.x += p.vx;
-        p.y += p.vy;
-        p.life--;
-
-        const groundY = H*0.72;
-        if (p.y > groundY) {
-          p.y = groundY;
-          p.vy *= -p.bounce;
-          p.vx *= 0.94;
-        }
-
-        const alpha = clamp(p.life/p.max, 0, 1) * p.alpha;
-        if (state.mode === 'city' || state.mode === 'rain') {
-          ctx.fillStyle = hueToRgb(p.hue, 100, 60, alpha);
-          ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, TAU); ctx.fill();
-        } else if (state.mode === 'fireworks') {
-          const grad = ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.size*1.8);
-          grad.addColorStop(0, hueToRgb(p.hue, 100, 70, alpha*0.8));
-          grad.addColorStop(1, 'rgba(255,255,255,0)');
-          ctx.fillStyle = grad;
-          ctx.beginPath(); ctx.arc(p.x, p.y, p.size*1.8, 0, TAU); ctx.fill();
-        } else {
-          ctx.strokeStyle = hueToRgb(p.hue, 100, 70, alpha);
-          ctx.lineWidth = p.size*0.18;
-          ctx.beginPath(); ctx.moveTo(p.x, p.y);
-          ctx.lineTo(p.x - p.vx*3, p.y - p.vy*3);
-          ctx.stroke();
-        }
-
-        if (p.life <= 0 || p.x<-50 || p.x>W+50 || p.y<-50 || p.y>H+50) {
-          state.particles.splice(i,1);
-        }
-      }
-    }
-
-    function spawnBurst(x=rand(W*0.2,W*0.8), y=rand(H*0.2,H*0.7), n=randi(36, 84)) {
+    /* =========================================================
+       PARTICLES & BURSTS
+       ========================================================= */
+    function spawnBurst(x=rand(W*0.2,W*0.8), y=rand(H*0.2,H*0.7), n=randi(36, 120)) {
       const base = randi(0,360);
-      const mode = state.mode;
       for (let i=0;i<n;i++) {
         const ang = rand(0, TAU);
         const spd = rand(1.8, 6.2);
@@ -1066,158 +643,468 @@
         const hue = (base + randi(-60,60) + i*2) % 360;
         const size = rand(3, 10);
         const life = randi(60, 160);
-        const g = 0.08 + rand(0.02, -0.02);
         const bounce = rand(0.12, 0.32);
-
         state.particles.push({
-          x, y, vx, vy, g, life, max: life, size, hue, bounce,
-          alpha: mode === 'fireworks' ? rand(0.6, 1) : rand(0.25, 0.75)
+          x, y, vx, vy, g: 0.08 + rand(0.02,-0.02), life, max: life, size, hue, bounce,
+          alpha: rand(0.25, 0.9), trail: state.mode!=='fireworks'
         });
       }
     }
 
-    function drawOrbiters() {
-      const cx = W*0.5, cy = H*0.42;
-      state.orbiters.forEach((o,i)=>{
-        o.a += o.s;
-        const x = cx + Math.cos(o.a) * o.r;
-        const y = cy + Math.sin(o.a) * o.r;
-        ctx.strokeStyle = hueToRgb(o.hue, 100, 70, 0.18);
-        ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.arc(cx, cy, o.r, 0, TAU); ctx.stroke();
+    function drawParticles(){
+      const gWind = state.params.wind * 0.01;
+      const groundY = state.city.roadY;
+      for (let i=state.particles.length-1;i>=0;i--){
+        const p = state.particles[i];
+        p.vx += gWind + rand(-0.02,0.02);
+        p.vy += p.g;
+        p.vx *= state.physics.friction;
+        p.vy *= state.physics.friction;
+        p.x += p.vx; p.y += p.vy; p.life--;
 
-        ctx.fillStyle = hueToRgb(o.hue, 100, 70, 0.90);
-        ctx.beginPath(); ctx.arc(x, y, o.w, 0, TAU); ctx.fill();
+        if (state.mode==='city' || state.mode==='fireworks' || state.mode==='ocean' || state.mode==='forest'){
+          if (state.mode!=='ocean' && p.y > groundY){
+            p.y = groundY;
+            p.vy *= -p.bounce;
+            p.vx *= 0.94;
+          }
+        }
 
-        ctx.strokeStyle = hueToRgb(o.hue, 100, 70, 0.42);
-        ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.moveTo(x, y);
-        ctx.lineTo(cx, cy);
-        ctx.stroke();
-      });
-    }
+        const alpha = clamp(p.life/p.max, 0, 1) * p.alpha;
+        if (state.mode === 'fireworks') {
+          const grad = ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.size*1.8);
+          grad.addColorStop(0, hueToRgb(p.hue, 100, 70, alpha*0.8));
+          grad.addColorStop(1, 'rgba(255,255,255,0)');
+          ctx.fillStyle = grad;
+          ctx.beginPath(); ctx.arc(p.x, p.y, p.size*1.8, 0, TAU); ctx.fill();
+        } else if (p.trail) {
+          ctx.strokeStyle = hueToRgb(p.hue, 100, 70, alpha);
+          ctx.lineWidth = p.size*0.18;
+          ctx.beginPath(); ctx.moveTo(p.x, p.y);
+          ctx.lineTo(p.x - p.vx*3, p.y - p.vy*3);
+          ctx.stroke();
+        } else {
+          ctx.fillStyle = hueToRgb(p.hue, 100, 60, alpha);
+          ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, TAU); ctx.fill();
+        }
 
-    function drawRipples() {
-      state.ripples.forEach((r,i)=>{
-        r.r += 0.8;
-        r.a *= 0.98;
-        ctx.strokeStyle = hueToRgb(r.hue, 80, 70, r.a);
-        ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.arc(r.x, r.y, r.r, 0, TAU); ctx.stroke();
-        if (r.a < 0.02) state.ripples.splice(i,1);
-      });
-
-      const rows = state.waveField.length;
-      if (!rows) return;
-      const cols = state.waveField[0].length;
-      const cellW = W / cols;
-      const cellH = (H*0.55) / rows;
-      const baseY = H*0.18;
-
-      for (let y=0;y<rows;y++) {
-        for (let x=0;x<cols;x++) {
-          const cell = state.waveField[y][x];
-          const xx = x*cellW;
-          const yy = baseY + y*cellH + Math.sin(performance.now()*0.002 + x*0.3 + y*0.2)*6 + cell.z;
-          const hue = (x*6 + y*11) % 360;
-          ctx.fillStyle = hueToRgb(hue, 70, state.night ? 50 : 65, 0.18);
-          ctx.fillRect(xx, yy, cellW*0.9, 4);
-          cell.z *= 0.96;
+        if (p.life<=0 || p.x<-50 || p.x>W+50 || p.y<-50 || p.y>H+50){
+          state.particles.splice(i,1);
         }
       }
     }
 
-    function drawRain() {
-      const quota = state.density;
-      for (let i=0;i<quota;i++) {
-        state.rainDrops.push({
-          x: rand(0, W),
-          y: rand(-40, -10),
-          vx: state.wind*0.02 + rand(-0.6, 0.6),
-          vy: rand(4, 8),
-          hue: randi(160, 220),
-          a: rand(0.35, 0.8),
-          len: rand(8, 18),
-        });
-      }
-
-      for (let i=state.rainDrops.length-1;i>=0;i--) {
-        const d = state.rainDrops[i];
-        d.x += d.vx;
-        d.y += d.vy;
-        ctx.strokeStyle = hueToRgb(d.hue, 80, 70, d.a);
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(d.x, d.y);
-        ctx.lineTo(d.x - d.vx*2, d.y - d.len);
-        ctx.stroke();
-
-        if (d.y > H*0.72) {
-          state.rainDrops.splice(i,1);
-          state.ripples.push({ x: d.x, y: H*0.72, r: 0, a: 0.5, hue: 190 });
-        } else if (d.x<-20 || d.x>W+20 || d.y>H+20) {
-          state.rainDrops.splice(i,1);
-        }
-      }
-    }
-
-    function drawFireworks() {
-      if (Math.random() < 0.02) {
+    /* =========================================================
+       FIREWORKS (AUTO)
+       ========================================================= */
+    function drawFireworks(){
+      if (Math.random() < 0.015) {
         const x = rand(W*0.1, W*0.9);
         const y = rand(H*0.1, H*0.4);
-        const hue = randi(0,360);
         for (let j=0;j<randi(3,6);j++) spawnBurst(x, y, randi(40,90));
-        state.fireworks.push({ x, y, r: 0, hue, a: 0.8 });
+        state.fireworks.push({ x, y, r: 0, hue: randi(0,360), a: 0.8 });
       }
-
-      for (let i=state.fireworks.length-1;i>=0;i--) {
-        const f = state.fireworks[i];
-        f.r += 1.1;
-        f.a *= 0.98;
-        ctx.strokeStyle = hueToRgb(f.hue, 100, 70, f.a);
-        ctx.lineWidth = 2;
+      for (let i=state.fireworks.length-1;i>=0;i--){
+        const f = state.fireworks[i]; f.r+=1.1; f.a*=0.98;
+        ctx.strokeStyle = hueToRgb(f.hue, 100, 70, f.a); ctx.lineWidth=2;
         ctx.beginPath(); ctx.arc(f.x, f.y, f.r, 0, TAU); ctx.stroke();
-        if (f.a < 0.02) state.fireworks.splice(i,1);
+        if (f.a<0.02) state.fireworks.splice(i,1);
       }
     }
 
-    function drawGrid() {
-      const cols = 28;
-      const rows = 16;
-      const cellW = W/cols;
-      const cellH = (H*0.68)/rows;
-      const baseY = H*0.12;
+    /* =========================================================
+       AURORA
+       ========================================================= */
+    function drawAurora(){
+      for (let i=0;i<8;i++){
+        const baseY = H*0.12 + i*80;
+        const amp = 40 + i*14;
+        const hue = (i*30 + performance.now()*0.04) % 360;
+        ctx.strokeStyle = hueToRgb(hue, 80, state.night?55:70, 0.35);
+        ctx.lineWidth = 8; ctx.beginPath();
+        for (let x=0;x<=W;x+=16){
+          const y = baseY + Math.sin(performance.now()*0.0014 + x*0.01 + i)*amp;
+          ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+    }
 
-      for (let i=0;i<state.gridCells.length;i++) {
+    /* =========================================================
+       NEON WAVES
+       ========================================================= */
+    function drawNeon(){
+      for (let i=0;i<140;i++){
+        const x = i/140 * W;
+        const y = H*0.3 + Math.sin(performance.now()*0.0012 + i*0.3)*40;
+        ctx.strokeStyle = hueToRgb((i*3 + performance.now()*0.03)%360, 100, state.night?60:70, 0.38);
+        ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + Math.sin(i*0.5)*20); ctx.stroke();
+      }
+    }
+
+    /* =========================================================
+       OCEAN
+       ========================================================= */
+    function initOcean(){
+      state.ocean.waves = [];
+      for (let i=0;i<5;i++){
+        state.ocean.waves.push({ amp: 12+ i*10, freq: 0.001 + i*0.0002, speed: 0.6 + i*0.1, phase: rand(0,TAU), hue: (180 + i*15)%360 });
+      }
+    }
+    initOcean();
+
+    function drawOcean(){
+      const base = H*0.6;
+      ctx.fillStyle = hueToRgb(210, 60, state.night?28:38, 1);
+      ctx.fillRect(0, base, W, H-base);
+      for (let i=0;i<state.ocean.waves.length;i++){
+        const wv = state.ocean.waves[i];
+        ctx.strokeStyle = hueToRgb(wv.hue, 80, state.night?50:65, 0.45);
+        ctx.lineWidth = 2; ctx.beginPath();
+        for (let x=0;x<=W;x+=8){
+          const y = base - 30 + Math.sin(performance.now()*wv.freq + x*0.02 + wv.phase)*wv.amp;
+          ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+      // foam particles
+      if (Math.random()<0.2){
+        const x = rand(0,W), y = base - rand(0,30);
+        state.particles.push({ x,y,vx: rand(-0.8,0.8), vy: rand(-0.6,-0.2), g: -0.01, life: randi(30,80), max: 80, size: rand(2,5), hue: 200, bounce: 0.2, alpha: rand(0.3,0.7), trail:false });
+      }
+    }
+
+    /* =========================================================
+       FOREST
+       ========================================================= */
+    function initForest(){
+      state.forest.trees = [];
+      for (let i=0;i<60;i++){
+        const x = rand(-W*0.1, W*1.1);
+        const h = rand(40,120);
+        const w = rand(10,18);
+        state.forest.trees.push({ x, y: H*0.75 - h, w, h, hue: (100 + i*2)%360 });
+      }
+    }
+    initForest();
+
+    function drawForest(){
+      ctx.fillStyle = 'rgba(20,26,30,0.9)';
+      ctx.fillRect(0, H*0.75, W, H*0.25);
+      for (let i=0;i<state.forest.trees.length;i++){
+        const t = state.forest.trees[i];
+        ctx.fillStyle = hueToRgb(100, 30, state.night?18:26, 1);
+        ctx.fillRect(t.x, t.y, t.w, t.h);
+        // canopy
+        radialGlow(ctx, t.x+t.w*0.5, t.y, t.w*1.4);
+      }
+      // fireflies
+      if (Math.random()<0.08){
+        state.particles.push({ x: rand(0,W), y: rand(H*0.5,H*0.9), vx: rand(-0.6,0.6), vy: rand(-0.2,0.2), g: 0, life: randi(60,120), max: 120, size: rand(2,4), hue: randi(40,90), bounce: 0, alpha: 0.8, trail:false });
+      }
+    }
+
+    /* =========================================================
+       SPACE
+       ========================================================= */
+    function initSpace(){
+      state.space.stars = [];
+      for (let i=0;i<600;i++){
+        state.space.stars.push({ x: rand(0,W), y: rand(0,H), r: rand(0.4,1.8), a: rand(0.2,0.9), hue: randi(180,260) });
+      }
+      state.space.orbits = [];
+      for (let i=0;i<12;i++){
+        state.space.orbits.push({ r: rand(40, 300), a: rand(0,TAU), s: rand(0.004,0.016), hue: randi(160, 280), w: rand(2,7) });
+      }
+    }
+    initSpace();
+
+    function drawSpace(){
+      for (let i=0;i<state.space.stars.length;i++){
+        const s = state.space.stars[i];
+        ctx.fillStyle = hueToRgb(s.hue, 60, 80, s.a);
+        ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, TAU); ctx.fill();
+      }
+      const cx = W*0.5, cy = H*0.42;
+      state.space.orbits.forEach(o=>{
+        o.a += o.s;
+        const x = cx + Math.cos(o.a)*o.r;
+        const y = cy + Math.sin(o.a)*o.r;
+        ctx.strokeStyle = hueToRgb(o.hue, 100, 70, 0.18);
+        ctx.lineWidth=1; ctx.beginPath(); ctx.arc(cx, cy, o.r, 0, TAU); ctx.stroke();
+        ctx.fillStyle = hueToRgb(o.hue, 100, 70, 0.9);
+        ctx.beginPath(); ctx.arc(x,y,o.w,0,TAU); ctx.fill();
+        ctx.strokeStyle = hueToRgb(o.hue, 100, 70, 0.42);
+        ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(cx,cy); ctx.stroke();
+      });
+    }
+
+    /* =========================================================
+       METABALLS
+       ========================================================= */
+    function initMetaballs(){
+      state.metaballs = [];
+      for (let i=0;i<10;i++){
+        state.metaballs.push({ x: rand(100, W-100), y: rand(100, H-100), vx: rand(-1.2,1.2), vy: rand(-1.2,1.2), r: rand(30,80), hue: randi(0,360) });
+      }
+    }
+    initMetaballs();
+
+    function drawMetaballs(){
+      ctxFx.clearRect(0,0,W,H);
+      for (let i=0;i<state.metaballs.length;i++){
+        const m = state.metaballs[i];
+        m.x += m.vx; m.y += m.vy;
+        if (m.x<m.r || m.x>W-m.r) m.vx*=-1;
+        if (m.y<m.r || m.y>H-m.r) m.vy*=-1;
+        const g = ctxFx.createRadialGradient(m.x,m.y,0, m.x,m.y,m.r);
+        g.addColorStop(0, hueToRgb(m.hue, 80, 70, 0.6));
+        g.addColorStop(1, 'rgba(0,0,0,0)');
+        ctxFx.fillStyle = g; ctxFx.beginPath(); ctxFx.arc(m.x,m.y,m.r,0,TAU); ctxFx.fill();
+      }
+      // compositing
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.drawImage(fx, 0, 0);
+      ctx.globalCompositeOperation = 'source-over';
+    }
+
+    /* =========================================================
+       GRID (ISOMETRIC-LIKE)
+       ========================================================= */
+    function initGrid(){
+      state.gridCells = [];
+      const cols = 28, rows = 16;
+      for (let y=0;y<rows;y++){
+        for (let x=0;x<cols;x++){
+          state.gridCells.push({ x,y,h: rand(6,80), hue: randi(0,360), pulse: rand(0.6,1.6) });
+        }
+      }
+    }
+    initGrid();
+
+    function drawGrid(){
+      const cols=28, rows=16;
+      const cellW = W/cols, cellH = (H*0.68)/rows, baseY = H*0.12;
+      for (let i=0;i<state.gridCells.length;i++){
         const c = state.gridCells[i];
         const x = c.x*cellW + cellW*0.1;
         const y = baseY + c.y*cellH + cellH*0.1;
         const w = cellW*0.8;
         const h = c.h + Math.sin(performance.now()*0.002 + i*0.12)*8*c.pulse;
-
         ctx.fillStyle = hueToRgb(c.hue, 80, state.night?48:60, 0.24);
         ctx.fillRect(x, y+h, w, -h);
-
         const g = ctx.createLinearGradient(x, y+h-h, x+w, y+h);
         g.addColorStop(0, hueToRgb((c.hue+40)%360, 80, 70, 0.08));
         g.addColorStop(1, 'rgba(255,255,255,0)');
-        ctx.fillStyle = g;
-        ctx.fillRect(x, y+h-h, w, h);
+        ctx.fillStyle = g; ctx.fillRect(x, y+h-h, w, h);
       }
+      ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth=1;
+      for (let cx=0;cx<=cols;cx++){ ctx.beginPath(); ctx.moveTo(cx*cellW, baseY); ctx.lineTo(cx*cellW, baseY + rows*cellH); ctx.stroke() }
+      for (let ry=0;ry<=rows;ry++){ ctx.beginPath(); ctx.moveTo(0, baseY + ry*cellH); ctx.lineTo(W, baseY + ry*cellH); ctx.stroke() }
+    }
 
-      ctx.strokeStyle = 'rgba(255,255,255,0.06)';
-      ctx.lineWidth = 1;
-      for (let cx=0; cx<=cols; cx++) {
-        ctx.beginPath();
-        ctx.moveTo(cx*cellW, baseY);
-        ctx.lineTo(cx*cellW, baseY + rows*cellH);
-        ctx.stroke();
+    /* =========================================================
+       CHARACTER (ANATOMICAL WAVE)
+       ========================================================= */
+    function buildRig(){
+      const cx = W*0.4, cy = H*0.6;
+      const lenUpper = 80, lenFore = 70, lenHand=18;
+      const shoulder = { x: cx, y: cy-120 };
+      const elbow = { x: shoulder.x + lenUpper, y: shoulder.y };
+      const wrist = { x: elbow.x + lenFore, y: elbow.y };
+      const hand = { x: wrist.x + lenHand, y: wrist.y };
+      state.character.rig = { shoulder, elbow, wrist, hand, lengths: { upper:lenUpper, fore:lenFore, hand:lenHand } };
+      state.character.pose = { s: 0, e: 0, w: 0 };
+      state.character.waving = true;
+    }
+    buildRig();
+
+    function solveArm(base, lengths, angles){
+      const sAng = angles.s, eAng = angles.e, wAng = angles.w;
+      const ex = base.x + Math.cos(sAng) * lengths.upper;
+      const ey = base.y + Math.sin(sAng) * lengths.upper;
+      const wx = ex + Math.cos(sAng + eAng) * lengths.fore;
+      const wy = ey + Math.sin(sAng + eAng) * lengths.fore;
+      const hx = wx + Math.cos(sAng + eAng + wAng) * lengths.hand;
+      const hy = wy + Math.sin(sAng + eAng + wAng) * lengths.hand;
+      return { elbow:{x:ex,y:ey}, wrist:{x:wx,y:wy}, hand:{x:hx,y:hy} };
+    }
+
+    function drawCharacter(){
+      const rig = state.character.rig;
+      if (state.character.waving){
+        const t = performance.now()*0.002;
+        state.character.pose.s = -Math.PI/4 + Math.sin(t)*0.25;
+        state.character.pose.e = Math.PI/2 + Math.sin(t*1.6)*0.3;
+        state.character.pose.w = Math.sin(t*2.0)*0.6;
       }
-      for (let ry=0; ry<=rows; ry++) {
-        ctx.beginPath();
-        ctx.moveTo(0, baseY + ry*cellH);
-        ctx.lineTo(W, baseY + ry*cellH);
-        ctx.stroke();
+      const solved = solveArm(rig.shoulder, rig.lengths, state.character.pose);
+      rig.elbow = solved.elbow; rig.wrist = solved.wrist; rig.hand = solved.hand;
+
+      // body
+      const bodyX = rig.shoulder.x - 30, bodyY = rig.shoulder.y + 20;
+      ctx.fillStyle = hueToRgb(200, 40, state.night?40:55, 1);
+      ctx.fillRect(bodyX, bodyY, 60, 120);
+
+      // head
+      ctx.fillStyle = hueToRgb(40, 30, state.night?60:70, 1);
+      ctx.beginPath(); ctx.arc(rig.shoulder.x, rig.shoulder.y-40, 26, 0, TAU); ctx.fill();
+
+      // arm (segments)
+      ctx.strokeStyle = hueToRgb(20, 40, state.night?60:70, 1);
+      ctx.lineWidth = 10; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(rig.shoulder.x, rig.shoulder.y);
+      ctx.lineTo(rig.elbow.x, rig.elbow.y); ctx.stroke();
+
+      ctx.beginPath(); ctx.moveTo(rig.elbow.x, rig.elbow.y);
+      ctx.lineTo(rig.wrist.x, rig.wrist.y); ctx.stroke();
+
+      ctx.beginPath(); ctx.moveTo(rig.wrist.x, rig.wrist.y);
+      ctx.lineTo(rig.hand.x, rig.hand.y); ctx.stroke();
+
+      // HELLO AQ text above
+      ctx.save();
+      ctx.translate(rig.hand.x, rig.hand.y - 60);
+      ctx.rotate(Math.sin(performance.now()*0.002)*0.06);
+      ctx.fillStyle = hueToRgb(300, 80, 70, 0.95);
+      ctx.font = 'bold 36px ui-sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('HELLO AQ', 0, 0);
+      ctx.restore();
+
+      // joints
+      ctx.fillStyle = hueToRgb(180, 80, 60, 1);
+      [rig.shoulder, rig.elbow, rig.wrist, rig.hand].forEach(j=>{
+        ctx.beginPath(); ctx.arc(j.x, j.y, 6, 0, TAU); ctx.fill();
+      });
+    }
+
+    /* =========================================================
+       CLOTH (MASS-SPRING)
+       ========================================================= */
+    function initCloth(){
+      const cols = state.cloth.size.cols, rows = state.cloth.size.rows;
+      const startX = state.cloth.anchor.x, startY = state.cloth.anchor.y;
+      const spacing = 10;
+      state.cloth.points = []; state.cloth.springs = [];
+      for (let y=0;y<rows;y++){
+        for (let x=0;x<cols;x++){
+          state.cloth.points.push({
+            x: startX + x*spacing, y: startY + y*spacing,
+            px: startX + x*spacing, py: startY + y*spacing,
+            pinned: y===0 && (x%4===0)
+          });
+        }
+      }
+      function index(x,y){ return y*cols + x }
+      for (let y=0;y<rows;y++){
+        for (let x=0;x<cols;x++){
+          if (x<cols-1) state.cloth.springs.push({ a:index(x,y), b:index(x+1,y), rest:spacing });
+          if (y<rows-1) state.cloth.springs.push({ a:index(x,y), b:index(x,y+1), rest:spacing });
+        }
+      }
+    }
+    initCloth();
+
+    function simulateCloth(dt){
+      const points = state.cloth.points;
+      const g = state.physics.g;
+      // verlet
+      for (let i=0;i<points.length;i++){
+        const p = points[i];
+        if (!p.pinned){
+          const vx = (p.x - p.px);
+          const vy = (p.y - p.py);
+          p.px = p.x; p.py = p.y;
+          p.x += vx * state.physics.friction;
+          p.y += (vy * state.physics.friction) + g*12*dt;
+          // wind
+          p.x += Math.sin(performance.now()*0.002 + i*0.02) * state.params.wind * 0.003;
+        }
+      }
+      // springs
+      for (let s=0;s<state.cloth.springs.length;s++){
+        const sp = state.cloth.springs[s];
+        const a = points[sp.a], b = points[sp.b];
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const dist = Math.hypot(dx,dy) || 0.0001;
+        const diff = (dist - sp.rest)/dist;
+        const k = state.physics.k, damp = state.physics.d;
+        const offsetX = dx*diff*k, offsetY = dy*diff*k;
+        if (!a.pinned){ a.x += offsetX*0.5; a.y += offsetY*0.5 }
+        if (!b.pinned){ b.x -= offsetX*0.5; b.y -= offsetY*0.5 }
+        // damping
+        const avx = a.x - a.px, avy = a.y - a.py;
+        const bvx = b.x - b.px, bvy = b.y - b.py;
+        const dvx = (bvx - avx)*damp, dvy = (bvy - avy)*damp;
+        if (!a.pinned){ a.x += dvx*0.5; a.y += dvy*0.5 }
+        if (!b.pinned){ b.x -= dvx*0.5; b.y -= dvy*0.5 }
+      }
+    }
+
+    function drawCloth(){
+      ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+      ctx.lineWidth = 1;
+      for (let s=0;s<state.cloth.springs.length;s++){
+        const sp = state.cloth.springs[s];
+        const a = state.cloth.points[sp.a];
+        const b = state.cloth.points[sp.b];
+        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+      }
+      // soft fill
+      ctx.beginPath();
+      const cols = state.cloth.size.cols, rows = state.cloth.size.rows;
+      for (let x=0;x<cols;x++){
+        const p = state.cloth.points[x];
+        if (x===0) ctx.moveTo(p.x,p.y);
+        else ctx.lineTo(p.x,p.y);
+      }
+      ctx.stroke();
+
+      // pins
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      state.cloth.points.forEach(p=>{
+        if (p.pinned){ ctx.beginPath(); ctx.arc(p.x,p.y,3,0,TAU); ctx.fill() }
+      });
+    }
+
+    /* =========================================================
+       SOCCER RNG (PES STYLE RANDOM TEAMS)
+       ========================================================= */
+    const TEAM_POOL = [
+      'Barcelona','Real Madrid','Atletico Madrid','Manchester City','Manchester United','Liverpool','Arsenal','Chelsea',
+      'Bayern Munich','Borussia Dortmund','RB Leipzig','PSG','Marseille','Lyon','Juventus','Inter','AC Milan','Napoli',
+      'Ajax','PSV','Fenerbahçe','Galatasaray','Beşiktaş','Trabzonspor','Porto','Benfica','Sporting','Shakhtar','Zenit',
+      'LAFC','Atlanta United','Flamengo','River Plate','Boca Juniors','Palmeiras','Santos','Corinthians'
+    ];
+
+    function randomTeams(n=2){
+      const copy = TEAM_POOL.slice();
+      const sel = [];
+      for (let i=0;i<n;i++){
+        const id = randi(0, copy.length-1);
+        sel.push(copy.splice(id,1)[0]);
+      }
+      state.soccer.draws = sel;
+      state.soccer.history.push({ t: Date.now(), sel });
+      showToast('Takımlar: ' + sel.join(' vs '), 2500);
+    }
+
+    function drawSoccerOverlay(){
+      ctxUi.clearRect(0,0,W,H);
+      ctxUi.fillStyle = 'rgba(0,0,0,0.25)';
+      ctxUi.fillRect(0,0,W,H);
+      ctxUi.fillStyle = hueToRgb(180,80,70,1);
+      ctxUi.font = 'bold 34px ui-sans-serif';
+      ctxUi.textAlign = 'center';
+      ctxUi.fillText('Rastgele Takımlar (PES tarzı)', W/2, H*0.18);
+      ctxUi.font = 'bold 48px ui-sans-serif';
+      const t = state.soccer.draws;
+      if (t.length>=2){
+        ctxUi.fillText(`${t[0]}  vs  ${t[1]}`, W/2, H*0.5);
+      } else {
+        ctxUi.fillText('Seçmek için: R tuşu', W/2, H*0.5);
       }
     }
 
@@ -1225,69 +1112,49 @@
        MAIN LOOP
        ========================================================= */
     let last = performance.now();
+    function loop(ts){
+      const dt = (ts - last) / 16.666; last = ts;
+      const factor = state.slow ? 0.35 : 1.0;
 
-    function loop(t) {
-      const dt = t - last; last = t;
-      state.fps = Math.round(1000 / Math.max(1, dt));
       ctx.clearRect(0,0,W,H);
 
-      const g = ctx.createRadialGradient(W/2,H/2,0,W/2,H/2,Math.max(W,H)*0.8);
-      g.addColorStop(0, 'rgba(0,0,0,0)');
-      g.addColorStop(1, 'rgba(0,0,0,'+(state.night?0.48:0.32)+')');
-      ctx.fillStyle = g;
-      ctx.fillRect(0,0,W,H);
+      // Background vignette
+      vignette(state.night ? 0.48 : 0.32);
 
-      if (state.mode === 'city') {
-        const road = state.objects.find(o=>o.kind==='road');
-        if (road) drawRoad(road);
-        for (let i=0;i<state.objects.length;i++) {
-          const o = state.objects[i];
-          if (o.kind === 'building') drawBuilding(o);
-        }
-        drawLights();
-      } else if (state.mode === 'neon') {
-        for (let i=0;i<120;i++) {
-          const x = i/120 * W;
-          const y = H*0.3 + Math.sin(performance.now()*0.0012 + i*0.3)*40;
-          ctx.strokeStyle = hueToRgb((i*3 + performance.now()*0.03)%360, 100, state.night?60:70, 0.38);
-          ctx.lineWidth = 3;
-          ctx.beginPath();
-          ctx.moveTo(x, y);
-          ctx.lineTo(x, y + Math.sin(i*0.5)*20);
-          ctx.stroke();
-        }
-      } else if (state.mode === 'waves') {
-        drawRipples();
-      } else if (state.mode === 'orbits') {
-        drawOrbiters();
-      } else if (state.mode === 'rain') {
-        const road = state.objects.find(o=>o.kind==='road');
-        if (road) drawRoad(road);
-        drawRain();
-      } else if (state.mode === 'aurora') {
-        for (let i=0;i<8;i++) {
-          const baseY = H*0.15 + i*60;
-          const amp = 40 + i*10;
-          const hue = (i*30 + performance.now()*0.04) % 360;
-          ctx.strokeStyle = hueToRgb(hue, 80, state.night?55:70, 0.35);
-          ctx.lineWidth = 8;
-          ctx.beginPath();
-          for (let x=0;x<=W;x+=16) {
-            const y = baseY + Math.sin(performance.now()*0.0014 + x*0.01 + i)*amp;
-            ctx.lineTo(x, y);
-          }
-          ctx.stroke();
-        }
-      } else if (state.mode === 'fireworks') {
-        drawFireworks();
-      } else if (state.mode === 'grid') {
-        drawGrid();
+      // Mode rendering
+      switch(state.mode){
+        case 'city':
+          drawRoad();
+          for (let i=0;i<state.city.buildings.length;i++) drawBuilding(state.city.buildings[i]);
+          drawCityLights();
+          break;
+        case 'aurora': drawAurora(); break;
+        case 'neon': drawNeon(); break;
+        case 'ocean': drawOcean(); break;
+        case 'forest': drawForest(); break;
+        case 'space': drawSpace(); break;
+        case 'fireworks': drawFireworks(); break;
+        case 'metaballs': drawMetaballs(); break;
+        case 'grid': drawGrid(); break;
+        case 'character': drawCharacter(); break;
+        case 'cloth':
+          simulateCloth(dt*factor);
+          drawCloth();
+          break;
+        case 'soccer':
+          drawSoccerOverlay();
+          break;
       }
 
+      // Particles
       drawParticles();
 
-      document.getElementById('fps').textContent = clamp(state.fps,0,240);
-      document.getElementById('objCount').textContent = state.objects.length + state.particles.length;
+      // UI readouts
+      const fps = Math.round(1000 / Math.max(1, ts - state.t));
+      state.t = ts;
+      state.fps = fps;
+      document.getElementById('fpsBox').textContent = clamp(fps,0,240);
+      document.getElementById('objBox').textContent = state.particles.length + (state.city.buildings?.length||0);
 
       requestAnimationFrame(loop);
     }
@@ -1300,8 +1167,16 @@
 
     addEventListener('resize', ()=>{
       W = innerWidth; H = innerHeight;
-      canvas.width = W * DPR; canvas.height = H * DPR; ctx.scale(DPR, DPR);
+      stage.width = W * DPR; stage.height = H * DPR; ctx.setTransform(DPR,0,0,DPR,0,0);
+      fx.width = W * DPR; fx.height = H * DPR; ctxFx.setTransform(DPR,0,0,DPR,0,0);
+      uiVis.width = W * DPR; uiVis.height = H * DPR; ctxUi.setTransform(DPR,0,0,DPR,0,0);
       rebuildCity();
+      initCloth();
+      initSpace();
+      initOcean();
+      initForest();
+      initGrid();
+      initMetaballs();
     });
 
     addEventListener('mousemove', (e)=>{
@@ -1310,48 +1185,68 @@
       state.mouse.x = e.clientX; state.mouse.y = e.clientY;
       cursor.style.transform = `translate3d(${state.mouse.x}px,${state.mouse.y}px,0)`;
 
-      if (state.mode === 'waves') {
-        const rows = state.waveField.length;
-        if (rows) {
-          const cols = state.waveField[0].length;
-          const cellW = W/cols;
-          const cellH = (H*0.55)/rows;
-          const xi = clamp(Math.floor((state.mouse.x)/cellW), 0, cols-1);
-          const yi = clamp(Math.floor((state.mouse.y - H*0.18)/cellH), 0, rows-1);
-          const power = 18 + (state.mouse.down ? 22 : 0);
-          for (let y=yi-2;y<=yi+2;y++) {
-            for (let x=xi-2;x<=xi+2;x++) {
-              if (state.waveField[y] && state.waveField[y][x]) {
-                const d = Math.hypot(x-xi, y-yi);
-                state.waveField[y][x].z += Math.max(0, power - d*10);
-              }
-            }
+      // wind modulation near edges
+      const edge = Math.min(state.mouse.x, W - state.mouse.x) / (W/2);
+      state.params.wind = lerp(state.params.wind, (1-edge)*60 * (state.mouse.down?1.4:1.0), 0.06);
+
+      // cloth poke
+      if (state.mode==='cloth' && state.mouse.down){
+        const pts = state.cloth.points;
+        for (let i=0;i<pts.length;i++){
+          const p = pts[i];
+          const d = Math.hypot(p.x - state.mouse.x, p.y - state.mouse.y);
+          if (d<40 && !p.pinned){
+            p.x += state.mouse.vx * 0.4;
+            p.y += state.mouse.vy * 0.4;
           }
-          state.ripples.push({ x: state.mouse.x, y: state.mouse.y, r: 0, a: 0.35, hue: (performance.now()/20)%360 });
         }
       }
-
-      const edge = Math.min(state.mouse.x, W - state.mouse.x) / (W/2);
-      state.wind = lerp(state.wind, (1-edge)*60 * (state.mouse.down?1.4:1.0), 0.06);
     });
 
     addEventListener('mousedown', (e)=>{
       state.mouse.down = true;
       const strong = e.shiftKey;
-      spawnBurst(e.clientX, e.clientY, strong ? randi(120, 200) : randi(36, 84));
+      const alt = e.altKey;
+      if (alt && state.mode==='metaballs'){
+        state.metaballs.push({ x: state.mouse.x, y: state.mouse.y, vx: rand(-1.2,1.2), vy: rand(-1.2,1.2), r: rand(20,70), hue: randi(0,360) });
+      } else {
+        spawnBurst(e.clientX, e.clientY, strong ? randi(140, 220) : randi(36, 84));
+      }
+      if (e.ctrlKey && state.mode==='cloth'){
+        // add pin near mouse
+        let best=null, bd=9999;
+        for (let i=0;i<state.cloth.points.length;i++){
+          const p=state.cloth.points[i];
+          const d=Math.hypot(p.x-state.mouse.x,p.y-state.mouse.y);
+          if (d<bd){ bd=d; best=i }
+        }
+        if (best!=null){ state.cloth.points[best].pinned = !state.cloth.points[best].pinned }
+      }
     });
-
     addEventListener('mouseup', ()=>{ state.mouse.down = false });
 
     addEventListener('keydown', (e)=>{
-      if (e.code === 'Space') { spawnBurst(state.mouse.x, state.mouse.y, randi(60, 120)) }
-      if (e.key.toLowerCase() === 'c') { state.particles = []; showToast('Parçacıklar temizlendi.'); }
-      if (e.key.toLowerCase() === 'm') { cycleMode(); }
-      if (e.key.toLowerCase() === 'n') { toggleNight(); }
+      const k = e.key.toLowerCase();
+      if (e.code==='Space'){ spawnBurst(state.mouse.x, state.mouse.y, randi(60,120)) }
+      if (k==='c'){ state.particles = []; showToast('Parçacıklar temizlendi.') }
+      if (k==='m'){ cycleMode() }
+      if (k==='n'){ toggleNight() }
+      if (k==='r'){ if (state.mode==='soccer') randomTeams(2); else shuffleAll() }
+      if (k==='s'){ toggleSlowMo() }
+
+      // character pose controls
+      if (state.mode==='character'){
+        if (k==='q'){ state.character.pose.s -= 0.1 }
+        if (k==='e'){ state.character.pose.s += 0.1 }
+        if (k==='a'){ state.character.pose.e -= 0.1 }
+        if (k==='d'){ state.character.pose.e += 0.1 }
+        if (k==='w'){ state.character.pose.w -= 0.1 }
+        if (k==='s'){ state.character.pose.w += 0.1 }
+      }
     });
 
-    function cycleMode() {
-      const modes = ['city','neon','waves','orbits','rain','aurora','fireworks','grid'];
+    function cycleMode(){
+      const modes = ['city','aurora','neon','ocean','forest','space','fireworks','metaballs','grid','character','cloth','soccer'];
       const i = modes.indexOf(state.mode);
       state.mode = modes[(i+1)%modes.length];
       document.getElementById('sceneStatus').textContent = `Mod: ${labelMode(state.mode)}`;
@@ -1360,81 +1255,116 @@
       showToast('Mod: '+labelMode(state.mode));
     }
 
-    function toggleNight() {
+    function toggleNight(){
       state.night = !state.night;
       document.getElementById('sceneStatus').textContent = `Gece modu: ${state.night ? 'Açık' : 'Kapalı'}`;
       showToast(state.night ? 'Gece modu açıldı.' : 'Gündüz modu açıldı.');
     }
 
-    /* =========================================================
-       SIDEBAR CONTROLS
-       ========================================================= */
-    document.getElementById('btnBurst').addEventListener('click', ()=> spawnBurst(state.mouse.x, state.mouse.y, randi(60,120)));
-    document.getElementById('btnClear').addEventListener('click', ()=> { state.particles = []; showToast('Parçacıklar temizlendi.'); });
-    document.getElementById('btnShuffle').addEventListener('click', ()=>{
-      const modes = ['city','neon','waves','orbits','rain','aurora','fireworks','grid'];
-      state.mode = modes[randi(0,modes.length-1)];
-      state.palette = Object.keys(palettes)[randi(0, Object.keys(palettes).length-1)];
-      applyPalette(state.palette);
-      updateChips();
-      updatePreview();
-      spawnBurst(rand(W*0.2,W*0.8), rand(H*0.2,H*0.7), randi(80,160));
-      showToast('Karıştırıldı: '+labelMode(state.mode)+' • Palet: '+state.palette);
-    });
-    document.getElementById('btnNight').addEventListener('click', toggleNight);
+    function toggleSlowMo(){
+      state.slow = !state.slow;
+      showToast(state.slow?'Slow-mo: Açık':'Slow-mo: Kapalı');
+    }
 
+    function shuffleAll(){
+      const modes = ['city','aurora','neon','ocean','forest','space','fireworks','metaballs','grid','character','cloth','soccer'];
+      state.mode = modes[randi(0,modes.length-1)];
+      state.params.palette = Object.keys(palettes)[randi(0,Object.keys(palettes).length-1)];
+      applyPalette(state.params.palette);
+      updateChips(); updatePreview();
+      spawnBurst(rand(W*0.2,W*0.8), rand(H*0.2,H*0.7), randi(80,160));
+      showToast('Karıştırıldı: '+labelMode(state.mode)+' • Palet: '+state.params.palette);
+    }
+
+    /* =========================================================
+       SIDEBAR UI
+       ========================================================= */
     const chipbar = document.getElementById('modeChips');
     chipbar.addEventListener('click', (e)=>{
       if (!e.target.classList.contains('chip')) return;
       const m = e.target.dataset.mode;
-      state.mode = m;
-      updateChips();
-      updatePreview();
+      state.mode = m; updateChips(); updatePreview();
       showToast('Mod: '+labelMode(m));
     });
-    function updateChips() {
+    function updateChips(){
       const chips = chipbar.querySelectorAll('.chip');
       chips.forEach(ch=> ch.classList.toggle('active', ch.dataset.mode === state.mode));
+      document.getElementById('modeBox').textContent = labelMode(state.mode);
     }
 
-    document.getElementById('inpBuildings').addEventListener('input', (e)=>{
-      state.buildings = +e.target.value;
-      rebuildCity();
-    });
-    document.getElementById('inpDensity').addEventListener('input', (e)=>{
-      state.density = +e.target.value;
-      updatePreview();
-    });
-    document.getElementById('inpWind').addEventListener('input', (e)=>{
-      state.wind = +e.target.value;
-      updatePreview();
-    });
-    document.getElementById('inpGlow').addEventListener('input', (e)=>{
-      state.glow = +e.target.value;
-      updatePreview();
-    });
-    document.getElementById('inpPalette').addEventListener('change', (e)=>{
-      state.palette = e.target.value;
-      applyPalette(state.palette);
-      updatePreview();
-    });
-    document.getElementById('btnRebuild').addEventListener('click', rebuildCity);
-    document.getElementById('btnExport').addEventListener('click', ()=>{
+    document.getElementById('btnBurst').addEventListener('click', ()=> spawnBurst(state.mouse.x, state.mouse.y, randi(60,120)));
+    document.getElementById('btnClear').addEventListener('click', ()=> { state.particles = []; showToast('Parçacıklar temizlendi.') });
+    document.getElementById('btnShuffle').addEventListener('click', shuffleAll);
+    document.getElementById('btnNight').addEventListener('click', toggleNight);
+    document.getElementById('btnScreenshot').addEventListener('click', ()=>{
       const a = document.createElement('a');
-      a.download = `metropolis-${Date.now()}.png`;
-      a.href = canvas.toDataURL('image/png');
+      const temp = document.createElement('canvas');
+      temp.width = W; temp.height = H;
+      const c2 = temp.getContext('2d');
+      c2.drawImage(stage,0,0,W,H);
+      c2.drawImage(fx,0,0,W,H);
+      c2.drawImage(uiVis,0,0,W,H);
+      a.download = `omni-${Date.now()}.png`;
+      a.href = temp.toDataURL('image/png');
       a.click();
       showToast('PNG dışa aktarıldı.');
     });
 
-    document.getElementById('btnModal').addEventListener('click', ()=>{
-      document.getElementById('modalMask').style.display = 'flex';
+    document.getElementById('btnDemo').addEventListener('click', ()=>{
+      const seq = ['aurora','neon','ocean','forest','space','fireworks','metaballs','grid','character','cloth','soccer','city'];
+      let i=0;
+      const id = setInterval(()=>{
+        state.mode = seq[i%seq.length]; updateChips(); updatePreview();
+        showToast('Mod: '+labelMode(state.mode));
+        i++; if (i>=seq.length*2) clearInterval(id);
+      }, 1400);
     });
-    document.getElementById('btnModalClose').addEventListener('click', ()=>{
-      document.getElementById('modalMask').style.display = 'none';
+
+    document.getElementById('btnPerf').addEventListener('click', ()=>{
+      state.perfBoost = !state.perfBoost;
+      state.physics.friction = state.perfBoost ? 0.98 : 0.96;
+      showToast(state.perfBoost?'Performans+ Açık':'Performans+ Kapalı');
     });
-    document.getElementById('modalMask').addEventListener('click', (e)=>{
-      if (e.target.id === 'modalMask') e.target.style.display = 'none';
+
+    document.getElementById('btnSlowMo').addEventListener('click', toggleSlowMo);
+    document.getElementById('btnAudio').addEventListener('click', toggleAudio);
+
+    // builder inputs
+    document.getElementById('inpBuildings').addEventListener('input', (e)=>{ state.params.buildings = +e.target.value; rebuildCity(); updatePreview() });
+    document.getElementById('inpDensity').addEventListener('input', (e)=>{ state.params.density = +e.target.value; updatePreview() });
+    document.getElementById('inpWind').addEventListener('input', (e)=>{ state.params.wind = +e.target.value; updatePreview() });
+    document.getElementById('inpGlow').addEventListener('input', (e)=>{ state.params.glow = +e.target.value; updatePreview() });
+    document.getElementById('inpPalette').addEventListener('change', (e)=>{ state.params.palette = e.target.value; applyPalette(state.params.palette); updatePreview() });
+    document.getElementById('inpLights').addEventListener('change', (e)=>{ state.params.lights = e.target.value; updatePreview() });
+
+    // physics inputs
+    document.getElementById('inpGravity').addEventListener('input', (e)=>{ state.physics.g = +e.target.value; updatePreview() });
+    document.getElementById('inpFriction').addEventListener('input', (e)=>{ state.physics.friction = +e.target.value; updatePreview() });
+    document.getElementById('inpSpringK').addEventListener('input', (e)=>{ state.physics.k = +e.target.value; updatePreview() });
+    document.getElementById('inpSpringD').addEventListener('input', (e)=>{ state.physics.d = +e.target.value; updatePreview() });
+
+    document.getElementById('btnResetCloth').addEventListener('click', ()=>{ initCloth(); showToast('Kumaş sıfırlandı.') });
+    document.getElementById('btnSpawnRope').addEventListener('click', ()=>{
+      // create a rope-like set of pinned points downwards
+      const startX = rand(W*0.2, W*0.8), startY = rand(H*0.1,H*0.3);
+      const segs = randi(10,20), spacing=14;
+      for (let i=0;i<segs;i++){
+        state.cloth.points.push({ x: startX, y: startY + i*spacing, px: startX, py: startY + i*spacing, pinned: i===0 });
+        if (i>0){
+          const a = state.cloth.points.length-2, b = state.cloth.points.length-1;
+          state.cloth.springs.push({ a, b, rest:spacing });
+        }
+      }
+      showToast('Halat eklendi.');
+    });
+    document.getElementById('btnSpawnBalls').addEventListener('click', ()=>{
+      for (let i=0;i<20;i++){
+        state.particles.push({ x: rand(0,W), y: rand(0,H*0.3), vx: rand(-1,1), vy: rand(-1,1), g: 0.6, life: randi(120,200), max: 200, size: rand(6,12), hue: randi(0,360), bounce: 0.6, alpha: 0.9, trail:false });
+      }
+      showToast('Toplar eklendi.');
+    });
+    document.getElementById('btnClearPhysics').addEventListener('click', ()=>{
+      state.cloth.points=[]; state.cloth.springs=[]; showToast('Fizik temizlendi.');
     });
 
     /* =========================================================
@@ -1443,7 +1373,7 @@
     const tabsEl = document.getElementById('tabs');
     const TB = {
       builder: document.getElementById('tab-builder'),
-      audio: document.getElementById('tab-audio'),
+      physics: document.getElementById('tab-physics'),
       console: document.getElementById('tab-console'),
     };
     tabsEl.addEventListener('click', (e)=>{
@@ -1460,11 +1390,9 @@
     const cmdLog = document.getElementById('cmdLog');
     const cmdInput = document.getElementById('cmdInput');
     document.getElementById('btnRun').addEventListener('click', runCmd);
-    cmdInput.addEventListener('keydown', e=>{
-      if (e.key === 'Enter') runCmd();
-    });
+    cmdInput.addEventListener('keydown', e=>{ if (e.key==='Enter') runCmd() });
 
-    function runCmd() {
+    function runCmd(){
       const text = cmdInput.value.trim();
       if (!text) return;
       const lines = text.split(';').map(s=> s.trim()).filter(Boolean);
@@ -1473,70 +1401,35 @@
         const head = parts[0].toLowerCase();
         const arg = parts.slice(1).join(' ');
         let out = '';
-
         try {
-          if (head === 'mode') {
-            state.mode = arg || 'city';
-            updateChips(); updatePreview();
-            out = `Mode set: ${labelMode(state.mode)}`;
-          } else if (head === 'burst') {
-            const n = +arg || randi(40, 100);
-            spawnBurst(state.mouse.x, state.mouse.y, n);
-            out = `Burst spawned: ${n}`;
-          } else if (head === 'palette') {
-            state.palette = arg || 'ocean';
-            applyPalette(state.palette); updatePreview();
-            out = `Palette set: ${state.palette}`;
-          } else if (head === 'night') {
-            state.night = arg ? arg.toLowerCase() === 'on' : !state.night;
-            out = `Night: ${state.night}`;
-          } else if (head === 'clear') {
-            state.particles = [];
-            out = 'Particles cleared';
-          } else if (head === 'rebuild') {
-            rebuildCity();
-            out = 'City rebuilt';
-          } else if (head === 'wind') {
-            state.wind = +arg || state.wind;
-            out = `Wind: ${state.wind}`;
-          } else if (head === 'density') {
-            state.density = +arg || state.density;
-            out = `Density: ${state.density}`;
-          } else if (head === 'buildings') {
-            state.buildings = +arg || state.buildings;
-            rebuildCity();
-            out = `Buildings: ${state.buildings}`;
-          } else {
-            out = `Unknown command: ${head}`;
-          }
-        } catch (err) {
-          out = `Error: ${err.message}`;
-        }
-
+          if (head==='mode'){ state.mode = arg || 'city'; updateChips(); updatePreview(); out = `Mode: ${labelMode(state.mode)}` }
+          else if (head==='burst'){ const n = +arg || randi(40,100); spawnBurst(state.mouse.x, state.mouse.y, n); out = `Burst: ${n}` }
+          else if (head==='palette'){ state.params.palette = arg || 'ocean'; applyPalette(state.params.palette); updatePreview(); out = `Palette: ${state.params.palette}` }
+          else if (head==='night'){ state.night = arg ? arg.toLowerCase()==='on' : !state.night; out = `Night: ${state.night}` }
+          else if (head==='clear'){ state.particles = []; out='Particles cleared' }
+          else if (head==='rebuild'){ rebuildCity(); out='City rebuilt' }
+          else if (head==='wind'){ state.params.wind = +arg || state.params.wind; out=`Wind: ${state.params.wind}` }
+          else if (head==='density'){ state.params.density = +arg || state.params.density; out=`Density: ${state.params.density}` }
+          else if (head==='buildings'){ state.params.buildings = +arg || state.params.buildings; rebuildCity(); out=`Buildings: ${state.params.buildings}` }
+          else if (head==='gravity'){ state.physics.g = +arg || state.physics.g; out=`Gravity: ${state.physics.g}` }
+          else if (head==='friction'){ state.physics.friction = +arg || state.physics.friction; out=`Friction: ${state.physics.friction}` }
+          else { out = `Unknown: ${head}` }
+        } catch (err) { out = `Error: ${err.message}` }
         cmdLog.textContent += `\n> ${cmd}\n${out}`;
         cmdLog.scrollTop = cmdLog.scrollHeight;
       });
-
-      cmdInput.value = '';
+      cmdInput.value='';
     }
 
     /* =========================================================
-       AUDIO (NOISE SYNTH)
+       AUDIO (NOISE AMBIENT)
        ========================================================= */
-    const audioBar = document.getElementById('audioBar');
-    document.getElementById('btnAudioToggle').addEventListener('click', toggleAudio);
-    document.getElementById('btnAudioPulse').addEventListener('click', ()=>{
-      pulseAudio();
-    });
-    document.getElementById('btnAudioShift').addEventListener('click', ()=>{
-      shiftAudioToPalette();
-    });
-
+    const audioState = { ctx:null, node:null, running:false, gain:0.15 };
     function ensureAudio() {
-      if (state.audio.ctx) return;
+      if (audioState.ctx) return;
       const AC = window.AudioContext || window.webkitAudioContext;
-      state.audio.ctx = new AC();
-      const ctxA = state.audio.ctx;
+      audioState.ctx = new AC();
+      const ctxA = audioState.ctx;
 
       const bufferSize = 2 * ctxA.sampleRate;
       const buffer = ctxA.createBuffer(1, bufferSize, ctxA.sampleRate);
@@ -1552,84 +1445,58 @@
       filter.frequency.value = 800;
 
       const gain = ctxA.createGain();
-      gain.gain.value = state.audio.gain;
+      gain.gain.value = audioState.gain;
 
       noise.connect(filter);
       filter.connect(gain);
       gain.connect(ctxA.destination);
 
-      state.audio.node = { noise, filter, gain };
+      audioState.node = { noise, filter, gain };
     }
 
     function toggleAudio() {
       ensureAudio();
-      const { ctx, node, running } = state.audio;
+      const { ctx, node, running } = audioState;
       if (!running) {
         node.noise.start(0);
-        state.audio.running = true;
+        audioState.running = true;
         showToast('Ambiyans başladı.');
       } else {
         node.gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.6);
         setTimeout(()=> {
           try { node.noise.stop(); } catch(e) {}
-          state.audio.running = false;
-          state.audio.ctx.close().then(()=>{
-            state.audio.ctx = null;
-            state.audio.node = null;
+          audioState.running = false;
+          audioState.ctx.close().then(()=>{
+            audioState.ctx = null;
+            audioState.node = null;
           });
           showToast('Ambiyans durdu.');
         }, 700);
       }
     }
 
-    function pulseAudio() {
-      if (!state.audio.node) return;
-      const g = state.audio.node.gain;
-      const v = rand(0.08, 0.30);
-      g.gain.cancelScheduledValues(0);
-      g.gain.setTargetAtTime(v, state.audio.ctx.currentTime, 0.12);
-      setTimeout(()=> g.gain.setTargetAtTime(state.audio.gain, state.audio.ctx.currentTime, 0.22), 260);
-      audioBar.style.transform = `scaleX(${clamp(v*3, 0.2, 1.8)})`;
-      setTimeout(()=> audioBar.style.transform = `scaleX(${clamp(state.audio.gain*3, 0.2, 1.6)})`, 420);
-    }
-
-    function shiftAudioToPalette() {
-      if (!state.audio.node) return;
-      const p = palettes[state.palette];
-      const target = 400 + (p.accents[0]%360) * 1.2;
-      state.audio.node.filter.frequency.setTargetAtTime(target, state.audio.ctx.currentTime, 0.6);
-      showToast('Ses rengi palete uyarlandı.');
-    }
-
     /* =========================================================
-       MISC EFFECTS
+       HINT ROTATION
        ========================================================= */
-    (function wobble(){
-      const el = document.querySelector('.hudTitle');
-      let t = 0;
-      function step(){
-        t += 0.008;
-        const x = Math.sin(t*0.9)*2;
-        const y = Math.cos(t*0.7)*2;
-        el.style.transform = `translate3d(${x}px,${y}px,0)`;
-        requestAnimationFrame(step);
-      }
-      step();
-    })();
-
-    updatePreview();
-
     setInterval(()=>{
       const hints = [
         'İpucu: Shift basılı tutup patlatırsan çok daha güçlü bir efekt alırsın.',
-        'İpucu: “rain” modunda kenarlara yakınken rüzgâr yönü dramatik değişir.',
-        'İpucu: Paleti “aurora” + mod “orbits” ile mükemmel uyum yakalanır.',
-        'İpucu: Space ile patlat, M ile mod değiştir, N ile gece.',
-        'İpucu: Export PNG ile anlık görüntüyü kaydet.'
+        'İpucu: “ocean” modunda rüzgâr ve dalga frekansını değiştir.',
+        'İpucu: Karakter modunda Q/E omuz, A/D dirsek, W/S bilek.',
+        'İpucu: Ctrl+Click ile kumaşın bir noktasını sabitle.',
+        'İpucu: R ile PES tarzı rastgele takım seç.',
+        'İpucu: PNG butonu ile sahnenin ekran görüntüsünü kaydet.'
       ];
       document.getElementById('sceneHint').textContent = hints[randi(0,hints.length-1)];
     }, 6000);
 
+    // wobble header
+    (function wobble(){
+      const el = document.querySelector('.hudTitle');
+      let t=0; function step(){ t+=0.008; const x=Math.sin(t*0.9)*2, y=Math.cos(t*0.7)*2; el.style.transform=`translate3d(${x}px,${y}px,0)`; requestAnimationFrame(step) } step();
+    })();
+
+    updatePreview();
   </script>
 </body>
 </html>

@@ -1,465 +1,1681 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="utf-8" />
-  <title>Eğik Atış Simülasyonu — HTML Tek Dosya</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <!-- Plotly CDN for interaktif grafikler -->
-  <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Procedural Metropolis — Interactive Art Playground</title>
   <style>
-    body { font-family: Inter, Roboto, Arial, sans-serif; margin: 18px; color:#111; background:#f7f9fb; }
-    h1 { margin: 0 0 8px 0; font-size: 22px; }
-    .row { display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap; }
-    .panel { background:white; border-radius:8px; padding:12px; box-shadow:0 1px 6px rgba(20,30,50,0.06); }
-    .controls { width:360px; min-width:280px; }
-    .controls label { display:block; font-size:13px; margin-top:8px; color:#333; }
-    .controls input[type="number"], .controls input[type="text"], .controls select { width:100%; padding:8px; border-radius:6px; border:1px solid #d6dbe0; box-sizing:border-box; }
-    .controls input[type="range"] { width:100%; }
-    .btn { display:inline-block; margin-top:10px; padding:8px 12px; border-radius:6px; background:#0b69ff; color:white; border:none; cursor:pointer; }
-    .btn.secondary { background:#e6eefc; color:#0b69ff; border:1px solid #cfe0ff; }
-    .summary { min-width:260px; max-width:420px; }
-    .summary p { margin:6px 0; font-size:14px; }
-    #plots { flex:1 1 720px; min-width:360px; }
-    .plot { background:white; border-radius:8px; padding:8px; margin-bottom:12px; }
-    table { border-collapse:collapse; width:100%; font-size:13px; }
-    th, td { padding:6px 8px; border-bottom:1px solid #eef2f6; text-align:right; }
-    th { background:#fbfdff; text-align:center; font-weight:600; }
-    .small { font-size:12px; color:#666; }
-    .footer { margin-top:12px; font-size:13px; color:#444; }
-    .flex-between { display:flex; justify-content:space-between; align-items:center; gap:12px; }
-    .codebox { font-family:monospace; font-size:12px; background:#0f1720; color:#e6eefc; padding:8px; border-radius:6px; overflow:auto; max-height:220px; }
+    /* =========================================================
+       GLOBAL THEME AND RESET
+       ========================================================= */
+    :root {
+      --bg0: #0a0b18;
+      --bg1: #0e1024;
+      --bg2: #101437;
+      --bg3: #151a49;
+
+      --fg: #eaf2ff;
+      --muted: #9aa7c7;
+
+      --accent: #5af0ff;
+      --accent2: #ff7add;
+      --accent3: #ffc857;
+
+      --glass: rgba(255,255,255,0.06);
+      --glass2: rgba(255,255,255,0.12);
+      --border: rgba(255,255,255,0.12);
+      --border2: rgba(255,255,255,0.2);
+
+      --grid-gap: 16px;
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --radius-sm: 10px;
+
+      --shadow-1: 0 30px 90px rgba(0,0,0,0.40);
+      --shadow-2: 0 18px 40px rgba(0,0,0,0.35);
+      --shadow-inset: inset 0 1px 0 rgba(255,255,255,0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: radial-gradient(1400px 900px at 70% -10%, var(--bg2), var(--bg0) 70%);
+      color: var(--fg);
+      font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+      overflow: hidden;
+    }
+    a { color: var(--accent) }
+
+    /* =========================================================
+       LAYERS
+       ========================================================= */
+    .layer {
+      position: fixed;
+      inset: 0;
+    }
+    #cityCanvas {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      filter: saturate(1.1) contrast(1.04);
+      will-change: transform;
+    }
+    .atmosphere {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      mix-blend-mode: screen;
+    }
+    .glow {
+      position: absolute;
+      width: 70vmax;
+      height: 70vmax;
+      border-radius: 50%;
+      background: radial-gradient(closest-side, rgba(90,240,255,0.18), transparent 70%);
+      top: -15vmax;
+      left: -20vmax;
+      animation: driftGlow 26s ease-in-out infinite alternate;
+      filter: blur(4px);
+    }
+    .glow.g2 {
+      background: radial-gradient(closest-side, rgba(255,122,221,0.14), transparent 70%);
+      top: 30vmax;
+      left: 55%;
+      animation-duration: 34s;
+    }
+    @keyframes driftGlow {
+      0%   { transform: translate(0,0) scale(1) rotate(0deg) }
+      100% { transform: translate(4vmax,-2vmax) scale(1.06) rotate(12deg) }
+    }
+
+    /* =========================================================
+       UI WRAPPER
+       ========================================================= */
+    .ui {
+      position: relative;
+      z-index: 2;
+      height: 100vh;
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: var(--grid-gap);
+      padding: 18px;
+    }
+    @media (max-width: 1200px) {
+      .ui { grid-template-columns: 320px 1fr; }
+    }
+    @media (max-width: 980px) {
+      .ui { grid-template-columns: 1fr; }
+    }
+
+    /* =========================================================
+       SIDEBAR
+       ========================================================= */
+    .sidebar {
+      height: calc(100vh - 36px);
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-1), var(--shadow-inset);
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+      gap: 14px;
+      padding: 14px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 10px;
+      border-radius: var(--radius-md);
+      background: rgba(255,255,255,0.04);
+      border: 1px dashed var(--border);
+    }
+    .brand .logo {
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, var(--accent), var(--accent2));
+      box-shadow: 0 0 0 6px rgba(90,240,255,0.12), 0 0 30px rgba(90,240,255,0.3);
+    }
+    .brand .title {
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: linear-gradient(90deg, var(--fg), var(--accent));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      font-size: 22px;
+      line-height: 1.2;
+    }
+    .brand .sub {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .modeSelect {
+      display: grid;
+      gap: 10px;
+    }
+    .modeSelect h3 {
+      margin: 6px 0;
+      font-size: 14px;
+      color: var(--muted);
+      letter-spacing: 0.02em;
+    }
+    .chipbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .chip {
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px dashed var(--border);
+      background: var(--glass);
+      color: var(--fg);
+      font-size: 13px;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 150ms ease, background 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+    }
+    .chip:hover { transform: translateY(-2px); background: rgba(255,255,255,0.12); border-color: var(--border2) }
+    .chip.active {
+      background: rgba(90,240,255,0.12);
+      border-color: rgba(90,240,255,0.38);
+      box-shadow: 0 0 0 4px rgba(90,240,255,0.12);
+    }
+
+    .controls {
+      display: grid;
+      gap: 12px;
+    }
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .btn {
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      background: #15183f;
+      color: var(--fg);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: transform 140ms ease, box-shadow 140ms ease, background 140ms ease;
+    }
+    .btn:hover { transform: translateY(-2px); box-shadow: var(--shadow-2); background: #1b1e4c }
+    .btn:active { transform: translateY(0) scale(0.98) }
+
+    .panel {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      display: grid;
+      gap: 10px;
+    }
+    .readout {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .metric {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px;
+      text-align: center;
+    }
+    .metric b {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    .metric span {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .footer {
+      display: grid;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      padding-top: 6px;
+      border-top: 1px dashed var(--border);
+    }
+
+    /* =========================================================
+       MAIN CANVAS OVERLAY HUD
+       ========================================================= */
+    .hud {
+      height: calc(100vh - 36px);
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-1), var(--shadow-inset);
+      padding: 12px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 10px;
+    }
+    .hudHeader {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .hudTitle {
+      font-size: clamp(24px, 4vw, 38px);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: linear-gradient(90deg, var(--fg), var(--accent));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .clock {
+      font-feature-settings: "tnum" 1, "lnum" 1;
+      font-variant-numeric: tabular-nums lining-nums;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .legend .k {
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+    }
+
+    .hudFooter {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      padding-top: 6px;
+      border-top: 1px dashed var(--border);
+    }
+
+    /* =========================================================
+       CUSTOM CURSOR
+       ========================================================= */
+    .cursor {
+      position: fixed;
+      width: 22px;
+      height: 22px;
+      margin-left: -11px;
+      margin-top: -11px;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 10;
+      box-shadow: 0 0 0 6px rgba(90,240,255,0.14), 0 0 28px rgba(90,240,255,0.3);
+      background: radial-gradient(circle at 30% 30%, var(--accent), var(--accent2));
+      transform: translate3d(-100px,-100px,0);
+      transition: transform 40ms linear;
+      mix-blend-mode: screen;
+    }
+
+    /* =========================================================
+       MINI CONSOLE
+       ========================================================= */
+    .console {
+      position: absolute;
+      right: 18px;
+      bottom: 18px;
+      width: min(520px, 92vw);
+      height: 160px;
+      background: rgba(0,0,0,0.45);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      backdrop-filter: blur(12px);
+      box-shadow: var(--shadow-2), var(--shadow-inset);
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      z-index: 4;
+    }
+    .consoleHeader {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 10px;
+      border-bottom: 1px dashed var(--border);
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .consoleBody {
+      padding: 8px;
+      overflow: auto;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+    .consoleFooter {
+      padding: 6px;
+      border-top: 1px dashed var(--border);
+      display: flex;
+      gap: 8px;
+    }
+    .consoleInput {
+      flex: 1;
+      padding: 8px 10px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.08);
+      color: var(--fg);
+      outline: none;
+    }
+
+    /* =========================================================
+       MODAL
+       ========================================================= */
+    .modalMask {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9;
+    }
+    .modal {
+      width: min(760px, 92vw);
+      background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04));
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      box-shadow: var(--shadow-1), var(--shadow-inset);
+      display: grid;
+      gap: 12px;
+    }
+    .modal h2 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 800;
+      background: linear-gradient(90deg, var(--fg), var(--accent));
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .modal p {
+      margin: 0;
+      color: var(--muted);
+    }
+    .modalActions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    /* =========================================================
+       TOAST
+       ========================================================= */
+    .toast {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 18px;
+      max-width: 560px;
+      width: calc(100% - 36px);
+      background: rgba(0,0,0,0.5);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 10px;
+      box-shadow: var(--shadow-2);
+      font-size: 13px;
+      color: var(--fg);
+      z-index: 8;
+      display: none;
+    }
+
+    /* =========================================================
+       TABS + BUILDER PANEL
+       ========================================================= */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      border-bottom: 1px dashed var(--border);
+      padding-bottom: 8px;
+    }
+    .tab {
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.06);
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .tab.active {
+      border-color: rgba(90,240,255,0.42);
+      background: rgba(90,240,255,0.12);
+      box-shadow: 0 0 0 4px rgba(90,240,255,0.12);
+    }
+
+    .builder {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    @media (max-width: 980px) {
+      .builder { grid-template-columns: 1fr; }
+    }
+
+    .formGrid {
+      display: grid;
+      gap: 10px;
+    }
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+    .label {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .input, .select {
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.08);
+      color: var(--fg);
+      outline: none;
+    }
+    .range {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 8px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+    }
+    .range::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, var(--accent), var(--accent2));
+      border: 1px solid var(--border2);
+      box-shadow: 0 0 0 6px rgba(90,240,255,0.14), 0 0 24px rgba(90,240,255,0.28);
+      cursor: pointer;
+    }
+
+    .codePreview {
+      background: rgba(0,0,0,0.4);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 10px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 12px;
+      line-height: 1.4;
+      white-space: pre;
+      overflow: auto;
+    }
+
+    /* =========================================================
+       AUDIO VIS
+       ========================================================= */
+    .audioBar {
+      height: 8px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: 999px;
+      box-shadow: 0 0 0 4px rgba(90,240,255,0.10);
+      transform-origin: left center;
+      transform: scaleX(0.2);
+      transition: transform 120ms ease;
+    }
+
+    /* =========================================================
+       MISC
+       ========================================================= */
+    .hidden { display: none !important; }
+    .flex { display: flex; gap: 8px; align-items: center; }
   </style>
 </head>
 <body>
-  <h1>Eğik Atış Simülasyonu — Tek Dosya HTML</h1>
-  <div class="row">
-    <div class="panel controls">
-      <strong>Parametreler</strong>
-      <label>İlk hız v₀ (m/s)
-        <input id="v0" type="number" step="0.1" value="25" />
-      </label>
-      <label>Açı θ (derece)
-        <input id="theta" type="number" step="0.1" value="45" />
-      </label>
-      <label>Başlangıç yüksekliği h₀ (m)
-        <input id="h0" type="number" step="0.01" value="0" />
-      </label>
-      <label>
-        Dünya ivmesi (varsayılan) ay = -20 m/s² (aşağı negatif)
-      </label>
-      <label>
-        Manuel ivme kullan
-        <select id="useManual">
-          <option value="false">Hayır (ax=0, ay=-20)</option>
-          <option value="true">Evet (ax_manual, ay_manual kullanılacak)</option>
-        </select>
-      </label>
-      <label>ax_manual (m/s²)
-        <input id="ax_manual" type="number" step="0.01" value="0.0" />
-      </label>
-      <label>ay_manual (m/s²) (aşağı negatif)
-        <input id="ay_manual" type="number" step="0.01" value="-20.0" />
-      </label>
-      <label>Zaman adımı dt (s)
-        <input id="dt" type="number" step="0.0001" value="0.01" />
-      </label>
-      <label>Maksimum simülasyon süresi max_time (s)
-        <input id="max_time" type="number" step="0.1" value="30.0" />
-      </label>
-      <label>Hedef minimum satır sayısı (en az)
-        <input id="min_rows" type="number" step="1" value="1000" />
-      </label>
-
-      <div style="margin-top:10px;">
-        <button id="runBtn" class="btn">Simülasyonu Çalıştır</button>
-        <button id="resetBtn" class="btn secondary">Parametreleri Sıfırla</button>
-      </div>
-
-      <div style="margin-top:12px;">
-        <button id="downloadCsv" class="btn secondary">CSV İndir</button>
-        <button id="copyCsv" class="btn secondary">CSV Kopyala Panoya</button>
-      </div>
-
-      <div style="margin-top:12px;">
-        <div class="small">Not: Kod RK4 entegrasyonu ile hesap yapar; dt küçültüldüğünde doğruluk artar.</div>
-      </div>
-    </div>
-
-    <div class="panel summary">
-      <strong>Özet</strong>
-      <div id="summaryBox">
-        <p>Henüz simülasyon çalıştırılmadı.</p>
-      </div>
-      <div style="margin-top:8px;">
-        <strong>İlk 10 satır</strong>
-        <div id="first10" style="margin-top:6px;"></div>
-      </div>
-      <div style="margin-top:8px;">
-        <strong>Son 10 satır</strong>
-        <div id="last10" style="margin-top:6px;"></div>
-      </div>
-    </div>
-
-    <div id="plots" class="panel">
-      <div class="flex-between">
-        <strong>Grafikler (eksende sayılar, işaretler ve hover değerleri gösterilir)</strong>
-        <div class="small">Zoom & pan ile detay inceleyebilirsiniz</div>
-      </div>
-
-      <div id="posPlot" class="plot" style="height:320px;"></div>
-      <div id="speedPlot" class="plot" style="height:300px;"></div>
-      <div id="accPlot" class="plot" style="height:240px;"></div>
+  <!-- BACKGROUND LAYERS -->
+  <div class="layer">
+    <canvas id="cityCanvas"></canvas>
+    <div class="atmosphere">
+      <div class="glow"></div>
+      <div class="glow g2"></div>
     </div>
   </div>
 
-  <div class="footer">
-    <div class="small">Bu HTML tek dosya içinde veri üretir, görselleştirir ve CSV olarak dışa aktarır. Grafikler Plotly ile çizilir; eksenlerde sayılar ve hover bilgileri görünür.</div>
+  <!-- UI -->
+  <div class="ui">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo"></div>
+        <div>
+          <div class="title">Procedural Metropolis</div>
+          <div class="sub">Dinamik şehir sahnesi • Etkileşimli sanat</div>
+        </div>
+      </div>
+
+      <div class="modeSelect">
+        <h3>Sahne modu</h3>
+        <div class="chipbar" id="modeChips">
+          <div class="chip active" data-mode="city">Şehir</div>
+          <div class="chip" data-mode="neon">Neon Rüyası</div>
+          <div class="chip" data-mode="waves">Dalga Alanı</div>
+          <div class="chip" data-mode="orbits">Yörünge</div>
+          <div class="chip" data-mode="rain">Holografik Yağmur</div>
+          <div class="chip" data-mode="aurora">Aurora</div>
+          <div class="chip" data-mode="fireworks">Havai fişek</div>
+          <div class="chip" data-mode="grid">İzometrik Izgara</div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="row">
+          <button class="btn" id="btnBurst">Patlat</button>
+          <button class="btn" id="btnClear">Temizle</button>
+          <button class="btn" id="btnShuffle">Karıştır</button>
+          <button class="btn" id="btnNight">Gece/Gündüz</button>
+        </div>
+        <div class="panel">
+          <div class="readout">
+            <div class="metric"><b>FPS</b><span id="fps">0</span></div>
+            <div class="metric"><b>Obj.</b><span id="objCount">0</span></div>
+            <div class="metric"><b>Mod</b><span id="modeLabel">Şehir</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="tabs" id="tabs">
+          <div class="tab active" data-tab="builder">Sahne kurucu</div>
+          <div class="tab" data-tab="audio">Ses</div>
+          <div class="tab" data-tab="console">Komutlar</div>
+        </div>
+
+        <div class="builder" id="tab-builder">
+          <div class="formGrid">
+            <div class="field">
+              <div class="label">Bina sayısı</div>
+              <input class="range" id="inpBuildings" type="range" min="30" max="400" value="140" />
+            </div>
+            <div class="field">
+              <div class="label">Parçacık yoğunluğu</div>
+              <input class="range" id="inpDensity" type="range" min="0" max="100" value="42" />
+            </div>
+            <div class="field">
+              <div class="label">Rüzgar</div>
+              <input class="range" id="inpWind" type="range" min="-100" max="100" value="12" />
+            </div>
+            <div class="field">
+              <div class="label">Işık parlaması</div>
+              <input class="range" id="inpGlow" type="range" min="0" max="100" value="35" />
+            </div>
+            <div class="field">
+              <div class="label">Renk paleti</div>
+              <select class="select" id="inpPalette">
+                <option value="ocean">Ocean</option>
+                <option value="sunset">Sunset</option>
+                <option value="candy">Candy</option>
+                <option value="mono">Mono</option>
+                <option value="aurora">Aurora</option>
+              </select>
+            </div>
+            <div class="row">
+              <button class="btn" id="btnRebuild">Yeniden kur</button>
+              <button class="btn" id="btnExport">Export PNG</button>
+              <button class="btn" id="btnModal">Hakkında</button>
+            </div>
+          </div>
+
+          <div class="codePreview" id="codePreview">// Burada sahne parametrelerinin canlı JSON önizlemesi görünecek.</div>
+        </div>
+
+        <div id="tab-audio" class="hidden">
+          <div class="panel">
+            <div class="label">Gürültü synth (ambiyans)</div>
+            <div class="row">
+              <button class="btn" id="btnAudioToggle">Başlat/Durdur</button>
+              <button class="btn" id="btnAudioPulse">Nabız</button>
+              <button class="btn" id="btnAudioShift">Renk eşle</button>
+            </div>
+            <div class="label">Seviye</div>
+            <div class="audioBar" id="audioBar"></div>
+          </div>
+        </div>
+
+        <div id="tab-console" class="hidden">
+          <div class="panel">
+            <div class="label">Mini komut konsolu</div>
+            <div class="row">
+              <input class="input" id="cmdInput" placeholder="Örnek: mode neon; burst 3; palette aurora" />
+              <button class="btn" id="btnRun">Çalıştır</button>
+            </div>
+            <div class="codePreview" id="cmdLog">// Çıktılar burada.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">
+        <div>Space: patlat • C: temizle • M: mod • N: gece/gündüz • Drag: sürükle-iz • Shift+Drag: güçlü</div>
+        <div id="clock">—:—:—</div>
+      </div>
+    </aside>
+
+    <main class="hud">
+      <div class="hudHeader">
+        <div class="hudTitle">Procedural Metropolis sahnesi</div>
+        <div class="clock" id="hudClock">—:—:—</div>
+      </div>
+
+      <!-- Canvas lives behind, HUD acts as overlay instruction panel -->
+      <div class="legend">
+        <div class="k">Şehir modunda: binalar, ışık pikselleri ve trafikli parçacıklar</div>
+        <div class="k">Modu değiştirip tamamen farklı bir görsel dünya açabilirsin</div>
+        <div class="k">Parametrelerle oyna; her şeyi gerçek zamanlı değiştir</div>
+      </div>
+
+      <div class="hudFooter">
+        <div id="sceneHint">İpucu: Mouse’u hareket ettir, kenarlara yaklaşınca rüzgar artar.</div>
+        <div id="sceneStatus">Durum: Hazır</div>
+      </div>
+    </main>
   </div>
+
+  <!-- CUSTOM CURSOR -->
+  <div class="cursor" id="cursor"></div>
+
+  <!-- MODAL -->
+  <div class="modalMask" id="modalMask">
+    <div class="modal">
+      <h2>Hakkında</h2>
+      <p>Procedural Metropolis — etkileşimli bir sanat ve simülasyon playground’u. Modları değiştir, parametreleri kur, patlat ve kaydet. Sahneler gerçek zamanlı olarak üretildiği için her an farklı bir görüntü oluşur.</p>
+      <p>Öneri: Paleti “aurora” yapıp mod “aurora” ve “yörünge” arasında geçiş dene; gece modunda dramatik sonuçlar verir.</p>
+      <div class="modalActions">
+        <button class="btn" id="btnModalClose">Kapat</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
 
   <script>
-  // ---------- Yardımcı fonksiyonlar ----------
-  function deg2rad(d) { return d * Math.PI / 180.0; }
-  function formatNum(x, n=5) { return Number.parseFloat(x).toFixed(n); }
+    /* =========================================================
+       UTILITIES
+       ========================================================= */
+    const DPR = Math.min(2, devicePixelRatio || 1);
+    const canvas = document.getElementById('cityCanvas');
+    const ctx = canvas.getContext('2d');
+    let W = canvas.width = innerWidth;
+    let H = canvas.height = innerHeight;
+    canvas.width = W * DPR; canvas.height = H * DPR; ctx.scale(DPR, DPR);
 
-  // RK4 integrator for 2D motion with constant acceleration (ax, ay)
-  // state: [x, y, vx, vy]
-  function derivatives(state, acc) {
-    return [ state[2], state[3], acc[0], acc[1] ];
-  }
-  function rk4_step(state, acc, dt) {
-    const k1 = derivatives(state, acc);
-    const s2 = state.map((v,i) => v + 0.5*dt*k1[i]);
-    const k2 = derivatives(s2, acc);
-    const s3 = state.map((v,i) => v + 0.5*dt*k2[i]);
-    const k3 = derivatives(s3, acc);
-    const s4 = state.map((v,i) => v + dt*k3[i]);
-    const k4 = derivatives(s4, acc);
-    return state.map((v,i) => v + dt*(k1[i] + 2*k2[i] + 2*k3[i] + k4[i]) / 6.0);
-  }
+    const rand = (a=1,b=0)=> b + (a-b)*Math.random();
+    const randi = (a,b)=> Math.floor(rand(a,b+1));
+    const clamp = (v,a,b)=> Math.max(a, Math.min(b, v));
+    const lerp = (a,b,t)=> a+(b-a)*t;
+    const TAU = Math.PI*2;
 
-  // CSV oluşturucu
-  function arrayToCSV(rows) {
-    const header = ['t (s)','x (m)','y (m)','vx (m/s)','vy (m/s)','|V| (m/s)','ax (m/s^2)','ay (m/s^2)'];
-    const lines = [header.join(',')];
-    for (const r of rows) {
-      lines.push(r.map(v => (typeof v === 'number') ? v.toPrecision(12) : v).join(','));
+    const hueToRgb = (h, s=100, l=60, a=1)=> `hsla(${h}, ${s}%, ${l}%, ${a})`;
+
+    function gradientRadial(x,y,r,stops) {
+      const g = ctx.createRadialGradient(x,y,0,x,y,r);
+      stops.forEach(([pos, color])=> g.addColorStop(pos, color));
+      return g;
     }
-    return lines.join('\\n');
-  }
 
-  // DOM elemanları
-  const v0El = document.getElementById('v0');
-  const thetaEl = document.getElementById('theta');
-  const h0El = document.getElementById('h0');
-  const useManualEl = document.getElementById('useManual');
-  const axManualEl = document.getElementById('ax_manual');
-  const ayManualEl = document.getElementById('ay_manual');
-  const dtEl = document.getElementById('dt');
-  const maxTimeEl = document.getElementById('max_time');
-  const minRowsEl = document.getElementById('min_rows');
+    function showToast(text, ms=2000) {
+      const el = document.getElementById('toast');
+      el.textContent = text;
+      el.style.display = 'block';
+      clearTimeout(showToast._id);
+      showToast._id = setTimeout(()=> { el.style.display = 'none'; }, ms);
+    }
 
-  const runBtn = document.getElementById('runBtn');
-  const resetBtn = document.getElementById('resetBtn');
-  const downloadCsvBtn = document.getElementById('downloadCsv');
-  const copyCsvBtn = document.getElementById('copyCsv');
+    /* Clock */
+    function tickClocks() {
+      const d = new Date();
+      const hh = String(d.getHours()).padStart(2,'0');
+      const mm = String(d.getMinutes()).padStart(2,'0');
+      const ss = String(d.getSeconds()).padStart(2,'0');
+      document.getElementById('clock').textContent = `${hh}:${mm}:${ss}`;
+      document.getElementById('hudClock').textContent = `${hh}:${mm}:${ss}`;
+    }
+    setInterval(tickClocks, 1000); tickClocks();
 
-  const summaryBox = document.getElementById('summaryBox');
-  const first10Box = document.getElementById('first10');
-  const last10Box = document.getElementById('last10');
+    /* =========================================================
+       STATE
+       ========================================================= */
+    const state = {
+      mode: 'city',
+      night: false,
+      objects: [],
+      particles: [],
+      lights: [],
+      wind: 12,
+      density: 42,
+      buildings: 140,
+      glow: 35,
+      palette: 'ocean',
+      fps: 0,
+      mouse: { x: W/2, y: H/2, down: false, vx: 0, vy: 0 },
+      t: performance.now(),
+      burstQueue: 0,
+      orbiters: [],
+      ripples: [],
+      rainDrops: [],
+      fireworks: [],
+      gridCells: [],
+      waveField: [],
+      audio: { ctx: null, node: null, running: false, gain: 0.15 }
+    };
 
-  let lastCSV = '';
-  let lastRows = [];
+    function updatePreview() {
+      const obj = {
+        mode: state.mode,
+        night: state.night,
+        wind: state.wind,
+        density: state.density,
+        buildings: state.buildings,
+        glow: state.glow,
+        palette: state.palette
+      };
+      document.getElementById('codePreview').textContent = JSON.stringify(obj, null, 2);
+      document.getElementById('modeLabel').textContent = labelMode(state.mode);
+    }
 
-  // Varsayılanları sıfırlama
-  function resetDefaults() {
-    v0El.value = 25;
-    thetaEl.value = 45;
-    h0El.value = 0;
-    useManualEl.value = 'false';
-    axManualEl.value = 0.0;
-    ayManualEl.value = -20.0;
-    dtEl.value = 0.01;
-    maxTimeEl.value = 30.0;
-    minRowsEl.value = 1000;
-  }
-  resetBtn.addEventListener('click', resetDefaults);
+    function labelMode(m) {
+      return m==='city'?'Şehir':
+             m==='neon'?'Neon Rüyası':
+             m==='waves'?'Dalga Alanı':
+             m==='orbits'?'Yörünge':
+             m==='rain'?'Holografik Yağmur':
+             m==='aurora'?'Aurora':
+             m==='fireworks'?'Havai fişek':
+             m==='grid'?'İzometrik Izgara': m;
+    }
 
-  // Simülasyonu çalıştır
-  runBtn.addEventListener('click', () => {
-    runBtn.disabled = true;
-    runBtn.textContent = 'Çalışıyor...';
-    setTimeout(() => {
-      try {
-        runSimulation();
-      } catch (e) {
-        alert('Hata: ' + e.message);
-      } finally {
-        runBtn.disabled = false;
-        runBtn.textContent = 'Simülasyonu Çalıştır';
+    /* =========================================================
+       PALETTES
+       ========================================================= */
+    const palettes = {
+      ocean: {
+        bg: ['#0e1024', '#0a0b18'],
+        hues: [190, 200, 210, 220, 230],
+        accents: [180, 195, 205, 215],
+      },
+      sunset: {
+        bg: ['#211019', '#0b0a16'],
+        hues: [12, 22, 32, 42, 52],
+        accents: [320, 342, 12, 38],
+      },
+      candy: {
+        bg: ['#1b1021', '#0c0a18'],
+        hues: [300, 330, 0, 40, 200],
+        accents: [300, 0, 200, 40],
+      },
+      mono: {
+        bg: ['#121212', '#0b0b0b'],
+        hues: [0, 0, 0, 0, 0],
+        accents: [0, 60, 120, 180, 240],
+      },
+      aurora: {
+        bg: ['#101437', '#0a0b18'],
+        hues: [150, 180, 210, 270, 300],
+        accents: [160, 190, 220, 280],
       }
-    }, 10);
-  });
+    };
 
-  // CSV indirme
-  downloadCsvBtn.addEventListener('click', () => {
-    if (!lastCSV) { alert('Önce simülasyonu çalıştırın.'); return; }
-    const blob = new Blob([lastCSV], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'projectile_data.csv';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  });
-
-  // CSV kopyala
-  copyCsvBtn.addEventListener('click', async () => {
-    if (!lastCSV) { alert('Önce simülasyonu çalıştırın.'); return; }
-    try {
-      await navigator.clipboard.writeText(lastCSV);
-      alert('CSV panoya kopyalandı.');
-    } catch (e) {
-      alert('Panoya kopyalama başarısız: ' + e.message);
+    function applyPalette(name) {
+      const p = palettes[name] || palettes.ocean;
+      document.body.style.background = `radial-gradient(1400px 900px at 70% -10%, ${p.bg[0]}, ${p.bg[1]} 70%)`;
+      document.body.style.setProperty('--accent', hueToRgb(p.accents[0], 80, 60));
+      document.body.style.setProperty('--accent2', hueToRgb(p.accents[1], 80, 60));
+      document.body.style.setProperty('--accent3', hueToRgb((p.accents[2]||p.accents[0]), 80, 60));
     }
-  });
+    applyPalette(state.palette);
 
-  // Ana simülasyon fonksiyonu
-  function runSimulation() {
-    // Parametreleri oku
-    let v0 = parseFloat(v0El.value);
-    let theta_deg = parseFloat(thetaEl.value);
-    let h0 = parseFloat(h0El.value);
-    const useManual = (useManualEl.value === 'true');
-    let ax_manual = parseFloat(axManualEl.value);
-    let ay_manual = parseFloat(ayManualEl.value);
-    let dt = parseFloat(dtEl.value);
-    const max_time = parseFloat(maxTimeEl.value);
-    const min_rows = Math.max(1, parseInt(minRowsEl.value));
+    /* =========================================================
+       CITY GENERATION
+       ========================================================= */
+    function rebuildCity() {
+      state.objects = [];
+      state.lights = [];
+      state.particles = [];
+      state.orbiters = [];
+      state.ripples = [];
+      state.rainDrops = [];
+      state.fireworks = [];
+      state.gridCells = [];
+      state.waveField = [];
 
-    // Varsayılan dünya ivmesi
-    const default_ax = 0.0;
-    const default_ay = -20.0;
+      const groundY = H*0.72;
+      const buildingCount = state.buildings;
+      const lanes = 3;
+      const laneH = 14;
 
-    const ax = useManual ? ax_manual : default_ax;
-    const ay = useManual ? ay_manual : default_ay;
+      // Road
+      state.objects.push({ kind:'road', y: groundY, lanes, laneH });
 
-    // Başlangıç durumları
-    const theta = deg2rad(theta_deg);
-    const vx0 = v0 * Math.cos(theta);
-    const vy0 = v0 * Math.sin(theta);
+      // Buildings
+      for (let i=0;i<buildingCount;i++) {
+        const bw = rand(40, 140);
+        const bh = rand(60, 500);
+        const bx = rand(-W*0.1, W*1.2);
+        const by = groundY - bh;
+        const hue = (palettes[state.palette].hues[i % palettes[state.palette].hues.length] + randi(-20,20)) % 360;
+        const windows = randi(3, 8);
+        const cols = randi(2, 6);
+        state.objects.push({
+          kind:'building',
+          x: bx, y: by, w: bw, h: bh,
+          hue, windows, cols,
+          glow: rand(0.2, 0.8),
+          skew: rand(-0.06, 0.06)
+        });
+      }
 
-    // Başlangıç state: [x, y, vx, vy]
-    let state = [0.0, h0, vx0, vy0];
+      // Traffic lights / street pixels
+      for (let i=0;i<randi(50,120);i++) {
+        const x = rand(0, W);
+        const y = groundY + rand(8, 60);
+        const hue = randi(0,360);
+        state.lights.push({
+          x,y,hue, life: randi(60, 160), pulse: rand(0.4, 1.4)
+        });
+      }
 
-    // Veri saklama
-    const rows = [];
-    let t = 0.0;
-    let step = 0;
+      // Orbiters for 'orbits' mode
+      for (let i=0;i<randi(12, 24);i++) {
+        state.orbiters.push({
+          r: rand(40, 260),
+          a: rand(0, TAU),
+          s: rand(0.004, 0.016),
+          hue: randi(0,360),
+          w: rand(2, 7)
+        });
+      }
 
-    // Simülasyon döngüsü (RK4)
-    // Simülasyon y <= 0 (zemine çarpma) ile sonlanır; eğer erken bitiyorsa dt küçültülerek tekrar çalıştırılır
-    function singleRun(local_dt) {
-      rows.length = 0;
-      t = 0.0;
-      step = 0;
-      state = [0.0, h0, vx0, vy0];
-      while (t <= max_time + 1e-12 && rows.length < 200000) {
-        const speed = Math.hypot(state[2], state[3]);
-        rows.push([t, state[0], state[1], state[2], state[3], speed, ax, ay]);
-        // Eğer y <= 0 ve t>0 ise çarpma gerçekleşti; son noktayı daha doğru bulmak için lineer interpolasyon yap
-        if (state[1] <= 0 && t > 0) {
-          break;
+      // Wave field for 'waves' mode
+      const cols = 40;
+      const rows = 22;
+      for (let y=0;y<rows;y++) {
+        const row = [];
+        for (let x=0;x<cols;x++) {
+          row.push({ z: 0 });
         }
-        // RK4 adımı
-        state = rk4_step(state, [ax, ay], local_dt);
-        t += local_dt;
-        step++;
+        state.waveField.push(row);
       }
-      return rows;
+
+      // Grid for 'grid' mode
+      const gCols = 28;
+      const gRows = 16;
+      for (let y=0;y<gRows;y++) {
+        for (let x=0;x<gCols;x++) {
+          state.gridCells.push({
+            x, y,
+            h: rand(6, 80),
+            hue: randi(0,360),
+            pulse: rand(0.6, 1.6),
+          });
+        }
+      }
+
+      updatePreview();
+      showToast('Sahne yeniden kuruldu.');
+    }
+    rebuildCity();
+
+    /* =========================================================
+       DRAWING
+       ========================================================= */
+    function drawRoad(road) {
+      const { y, lanes, laneH } = road;
+      ctx.save();
+      ctx.translate(0,0);
+
+      // Asphalt
+      ctx.fillStyle = 'rgba(20,22,40,0.9)';
+      ctx.fillRect(0, y, W, H - y);
+
+      // Lane lines
+      ctx.strokeStyle = 'rgba(240,240,255,0.18)';
+      ctx.lineWidth = 2;
+      for (let i=0;i<lanes;i++) {
+        const ly = y + i*laneH + laneH*0.5;
+        ctx.setLineDash([12, 14]);
+        ctx.beginPath();
+        ctx.moveTo(0, ly);
+        ctx.lineTo(W, ly);
+        ctx.stroke();
+      }
+
+      ctx.restore();
     }
 
-    // İlk çalıştırma
-    let produced = singleRun(dt);
+    function drawBuilding(b) {
+      // Slight perspective skew
+      ctx.save();
+      ctx.translate(b.x, b.y);
+      ctx.transform(1, 0, b.skew, 1, 0, 0);
 
-    // Eğer satır sayısı < min_rows ve simülasyon erken bitmişse dt'yi küçültüp yeniden üret
-    if (produced.length < min_rows) {
-      // dt'yi otomatik küçültme stratejisi: dt_new = dt * (produced/min_rows)
-      // ama dt küçültme faktörü çok büyükse kademeli azalt
-      let attempts = 0;
-      while (produced.length < min_rows && attempts < 12) {
-        attempts++;
-        // hedeflenen dt
-        const ratio = produced.length / min_rows;
-        // güvenli küçültme: dt_new = dt * max(0.2, ratio)
-        const factor = Math.max(0.05, ratio);
-        dt = Math.max(1e-5, dt * factor);
-        produced = singleRun(dt);
+      const col = hueToRgb(b.hue, 50, state.night ? 28 : 42, 1);
+      ctx.fillStyle = col;
+      ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+      ctx.lineWidth = 1;
+      ctx.fillRect(0, 0, b.w, b.h);
+      ctx.strokeRect(0, 0, b.w, b.h);
+
+      // Roof glow
+      const g = gradientRadial(b.w*0.5, 10, b.w*0.6, [
+        [0, hueToRgb((b.hue+40)%360, 80, 70, 0.10*state.glow/50)],
+        [1, 'rgba(255,255,255,0)']
+      ]);
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(b.w*0.5, 10, b.w*0.6, 0, TAU); ctx.fill();
+
+      // Windows grid
+      const wPad = 8;
+      const hPad = 10;
+      const winW = (b.w - wPad*2) / b.cols;
+      const winH = (b.h - hPad*2) / b.windows;
+      for (let r=0;r<b.windows;r++) {
+        for (let c=0;c<b.cols;c++) {
+          const wx = wPad + c*winW + winW*0.08;
+          const wy = hPad + r*winH + winH*0.08;
+          const ww = winW * 0.84;
+          const wh = winH * 0.74;
+
+          // Light flicker
+          const on = Math.random() > 0.26;
+          const lh = (b.hue + (on? r*c : 180)) % 360;
+          const alpha = on ? rand(0.18, 0.65) : 0.08;
+          ctx.fillStyle = hueToRgb(lh, 70, state.night ? 64 : 74, alpha);
+          ctx.fillRect(wx, wy, ww, wh);
+        }
+      }
+
+      ctx.restore();
+    }
+
+    function drawLights() {
+      for (let i=state.lights.length-1;i>=0;i--) {
+        const l = state.lights[i];
+        l.life--;
+        l.pulse += Math.sin(performance.now()*0.002 + i)*0.01;
+        const r = 18 + 10*Math.sin(l.pulse);
+        const g = gradientRadial(l.x, l.y, r, [
+          [0, hueToRgb(l.hue, 100, 70, 0.20)],
+          [0.5, hueToRgb(l.hue, 100, 60, 0.08)],
+          [1, 'rgba(255,255,255,0)']
+        ]);
+        ctx.fillStyle = g;
+        ctx.fillRect(l.x-r, l.y-r, r*2, r*2);
+        if (l.life <= 0) state.lights.splice(i,1);
       }
     }
 
-    // Eğer hala yeterli değilse max_time'ı artır ve tekrar
-    if (produced.length < min_rows) {
-      let attempts = 0;
-      let newMax = max_time;
-      while (produced.length < min_rows && attempts < 8) {
-        attempts++;
-        newMax *= 1.5;
-        // geçici max_time ile yeniden çalıştır
-        const oldMax = parseFloat(maxTimeEl.value);
-        const tmpMax = newMax;
-        // run with extended max_time by temporarily overriding
-        const savedMax = parseFloat(maxTimeEl.value);
-        // run singleRun with closure using tmpMax by temporarily setting max_time variable
-        // (we'll implement a quick local runner)
-        function singleRunWithMax(local_dt, local_max) {
-          const tmpRows = [];
-          let tmpState = [0.0, h0, vx0, vy0];
-          let tmpT = 0.0;
-          while (tmpT <= local_max + 1e-12 && tmpRows.length < 500000) {
-            const speed = Math.hypot(tmpState[2], tmpState[3]);
-            tmpRows.push([tmpT, tmpState[0], tmpState[1], tmpState[2], tmpState[3], speed, ax, ay]);
-            if (tmpState[1] <= 0 && tmpT > 0) break;
-            tmpState = rk4_step(tmpState, [ax, ay], local_dt);
-            tmpT += local_dt;
+    function drawParticles() {
+      const gWind = state.wind * 0.01;
+      for (let i=state.particles.length-1;i>=0;i--) {
+        const p = state.particles[i];
+        p.vx += gWind + rand(-0.02, 0.02);
+        p.vy += p.g;
+        p.vx *= 0.992;
+        p.vy *= 0.992;
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life--;
+
+        // bounce ground
+        const groundY = H*0.72;
+        if (p.y > groundY) {
+          p.y = groundY;
+          p.vy *= -p.bounce;
+          p.vx *= 0.94;
+        }
+
+        const alpha = clamp(p.life/p.max, 0, 1) * p.alpha;
+        if (state.mode === 'city' || state.mode === 'rain') {
+          ctx.fillStyle = hueToRgb(p.hue, 100, 60, alpha);
+          ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, TAU); ctx.fill();
+        } else if (state.mode === 'fireworks') {
+          const grad = ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.size*1.8);
+          grad.addColorStop(0, hueToRgb(p.hue, 100, 70, alpha*0.8));
+          grad.addColorStop(1, 'rgba(255,255,255,0)');
+          ctx.fillStyle = grad;
+          ctx.beginPath(); ctx.arc(p.x, p.y, p.size*1.8, 0, TAU); ctx.fill();
+        } else {
+          ctx.strokeStyle = hueToRgb(p.hue, 100, 70, alpha);
+          ctx.lineWidth = p.size*0.18;
+          ctx.beginPath(); ctx.moveTo(p.x, p.y);
+          ctx.lineTo(p.x - p.vx*3, p.y - p.vy*3);
+          ctx.stroke();
+        }
+
+        if (p.life <= 0 || p.x<-50 || p.x>W+50 || p.y<-50 || p.y>H+50) {
+          state.particles.splice(i,1);
+        }
+      }
+    }
+
+    function spawnBurst(x=rand(W*0.2,W*0.8), y=rand(H*0.2,H*0.7), n=randi(36, 84)) {
+      const base = randi(0,360);
+      const mode = state.mode;
+      for (let i=0;i<n;i++) {
+        const ang = rand(0, TAU);
+        const spd = rand(1.8, 6.2);
+        const vx = Math.cos(ang)*spd;
+        const vy = Math.sin(ang)*spd;
+        const hue = (base + randi(-60,60) + i*2) % 360;
+        const size = rand(3, 10);
+        const life = randi(60, 160);
+        const g = 0.08 + rand(0.02, -0.02);
+        const bounce = rand(0.12, 0.32);
+
+        state.particles.push({
+          x, y, vx, vy, g, life, max: life, size, hue, bounce,
+          alpha: mode === 'fireworks' ? rand(0.6, 1) : rand(0.25, 0.75)
+        });
+      }
+    }
+
+    function drawOrbiters() {
+      const cx = W*0.5, cy = H*0.42;
+      state.orbiters.forEach((o,i)=>{
+        o.a += o.s;
+        const x = cx + Math.cos(o.a) * o.r;
+        const y = cy + Math.sin(o.a) * o.r;
+        ctx.strokeStyle = hueToRgb(o.hue, 100, 70, 0.18);
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.arc(cx, cy, o.r, 0, TAU); ctx.stroke();
+
+        ctx.fillStyle = hueToRgb(o.hue, 100, 70, 0.90);
+        ctx.beginPath(); ctx.arc(x, y, o.w, 0, TAU); ctx.fill();
+
+        // trail
+        ctx.strokeStyle = hueToRgb(o.hue, 100, 70, 0.42);
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(x, y);
+        ctx.lineTo(cx, cy);
+        ctx.stroke();
+      });
+    }
+
+    function drawRipples() {
+      // for 'waves' mode
+      state.ripples.forEach((r,i)=>{
+        r.r += 0.8;
+        r.a *= 0.98;
+        ctx.strokeStyle = hueToRgb(r.hue, 80, 70, r.a);
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(r.x, r.y, r.r, 0, TAU); ctx.stroke();
+        if (r.a < 0.02) state.ripples.splice(i,1);
+      });
+
+      // wave field surface
+      const rows = state.waveField.length;
+      if (!rows) return;
+      const cols = state.waveField[0].length;
+      const cellW = W / cols;
+      const cellH = (H*0.55) / rows;
+      const baseY = H*0.18;
+
+      for (let y=0;y<rows;y++) {
+        for (let x=0;x<cols;x++) {
+          const cell = state.waveField[y][x];
+          const xx = x*cellW;
+          const yy = baseY + y*cellH + Math.sin(performance.now()*0.002 + x*0.3 + y*0.2)*6 + cell.z;
+          const hue = (x*6 + y*11) % 360;
+          ctx.fillStyle = hueToRgb(hue, 70, state.night ? 50 : 65, 0.18);
+          ctx.fillRect(xx, yy, cellW*0.9, 4);
+          // decay
+          cell.z *= 0.96;
+        }
+      }
+    }
+
+    function drawRain() {
+      // spawn
+      const quota = state.density;
+      for (let i=0;i<quota;i++) {
+        state.rainDrops.push({
+          x: rand(0, W),
+          y: rand(-40, -10),
+          vx: state.wind*0.02 + rand(-0.6, 0.6),
+          vy: rand(4, 8),
+          hue: randi(160, 220),
+          a: rand(0.35, 0.8),
+          len: rand(8, 18),
+        });
+      }
+
+      // draw
+      for (let i=state.rainDrops.length-1;i>=0;i--) {
+        const d = state.rainDrops[i];
+        d.x += d.vx;
+        d.y += d.vy;
+        ctx.strokeStyle = hueToRgb(d.hue, 80, 70, d.a);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(d.x, d.y);
+        ctx.lineTo(d.x - d.vx*2, d.y - d.len);
+        ctx.stroke();
+
+        if (d.y > H*0.72) {
+          state.rainDrops.splice(i,1);
+          // ripple
+          state.ripples.push({ x: d.x, y: H*0.72, r: 0, a: 0.5, hue: 190 });
+        } else if (d.x<-20 || d.x>W+20 || d.y>H+20) {
+          state.rainDrops.splice(i,1);
+        }
+      }
+    }
+
+    function drawFireworks() {
+      // Compose fireworks from multiple bursts
+      if (Math.random() < 0.02) {
+        const x = rand(W*0.1, W*0.9);
+        const y = rand(H*0.1, H*0.4);
+        const hue = randi(0,360);
+        for (let j=0;j<randi(3,6);j++) spawnBurst(x, y, randi(40,90));
+        state.fireworks.push({ x, y, r: 0, hue, a: 0.8 });
+      }
+
+      for (let i=state.fireworks.length-1;i>=0;i--) {
+        const f = state.fireworks[i];
+        f.r += 1.1;
+        f.a *= 0.98;
+        ctx.strokeStyle = hueToRgb(f.hue, 100, 70, f.a);
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(f.x, f.y, f.r, 0, TAU); ctx.stroke();
+        if (f.a < 0.02) state.fireworks.splice(i,1);
+      }
+    }
+
+    function drawGrid() {
+      const cols = 28;
+      const rows = 16;
+      const cellW = W/cols;
+      const cellH = (H*0.68)/rows;
+      const baseY = H*0.12;
+
+      for (let i=0;i<state.gridCells.length;i++) {
+        const c = state.gridCells[i];
+        const x = c.x*cellW + cellW*0.1;
+        const y = baseY + c.y*cellH + cellH*0.1;
+        const w = cellW*0.8;
+        const h = c.h + Math.sin(performance.now()*0.002 + i*0.12)*8*c.pulse;
+
+        ctx.fillStyle = hueToRgb(c.hue, 80, state.night?48:60, 0.24);
+        ctx.fillRect(x, y+h, w, -h);
+
+        // highlight
+        const g = ctx.createLinearGradient(x, y+h-h, x+w, y+h);
+        g.addColorStop(0, hueToRgb((c.hue+40)%360, 80, 70, 0.08));
+        g.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = g;
+        ctx.fillRect(x, y+h-h, w, h);
+      }
+
+      // grid lines
+      ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+      ctx.lineWidth = 1;
+      for (let cx=0; cx<=cols; cx++) {
+        ctx.beginPath();
+        ctx.moveTo(cx*cellW, baseY);
+        ctx.lineTo(cx*cellW, baseY + rows*cellH);
+        ctx.stroke();
+      }
+      for (let ry=0; ry<=rows; ry++) {
+        ctx.beginPath();
+        ctx.moveTo(0, baseY + ry*cellH);
+        ctx.lineTo(W, baseY + ry*cellH);
+        ctx.stroke();
+      }
+    }
+
+    /* =========================================================
+       MAIN LOOP
+       ========================================================= */
+    let last = performance.now();
+
+    function loop(t) {
+      const dt = t - last; last = t;
+      state.fps = Math.round(1000 / Math.max(1, dt));
+      ctx.clearRect(0,0,W,H);
+
+      // background vignette
+      const g = ctx.createRadialGradient(W/2,H/2,0,W/2,H/2,Math.max(W,H)*0.8);
+      g.addColorStop(0, 'rgba(0,0,0,0)');
+      g.addColorStop(1, 'rgba(0,0,0,'+(state.night?0.48:0.32)+')');
+      ctx.fillStyle = g;
+      ctx.fillRect(0,0,W,H);
+
+      // draw by mode
+      if (state.mode === 'city') {
+        // ground & buildings
+        const road = state.objects.find(o=>o.kind==='road');
+        if (road) drawRoad(road);
+        for (let i=0;i<state.objects.length;i++) {
+          const o = state.objects[i];
+          if (o.kind === 'building') drawBuilding(o);
+        }
+        drawLights();
+      } else if (state.mode === 'neon') {
+        // neon wires
+        for (let i=0;i<120;i++) {
+          const x = i/120 * W;
+          const y = H*0.3 + Math.sin(performance.now()*0.0012 + i*0.3)*40;
+          ctx.strokeStyle = hueToRgb((i*3 + performance.now()*0.03)%360, 100, state.night?60:70, 0.38);
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(x, y + Math.sin(i*0.5)*20);
+          ctx.stroke();
+        }
+      } else if (state.mode === 'waves') {
+        drawRipples();
+      } else if (state.mode === 'orbits') {
+        drawOrbiters();
+      } else if (state.mode === 'rain') {
+        const road = state.objects.find(o=>o.kind==='road');
+        if (road) drawRoad(road);
+        drawRain();
+      } else if (state.mode === 'aurora') {
+        // layered ribbons
+        for (let i=0;i<8;i++) {
+          const baseY = H*0.15 + i*60;
+          const amp = 40 + i*10;
+          const hue = (i*30 + performance.now()*0.04) % 360;
+          ctx.strokeStyle = hueToRgb(hue, 80, state.night?55:70, 0.35);
+          ctx.lineWidth = 8;
+          ctx.beginPath();
+          for (let x=0;x<=W;x+=16) {
+            const y = baseY + Math.sin(performance.now()*0.0014 + x*0.01 + i)*amp;
+            ctx.lineTo(x, y);
           }
-          return tmpRows;
+          ctx.stroke();
         }
-        produced = singleRunWithMax(dt, tmpMax);
+      } else if (state.mode === 'fireworks') {
+        drawFireworks();
+      } else if (state.mode === 'grid') {
+        drawGrid();
+      }
+
+      // particles last
+      drawParticles();
+
+      // readouts
+      document.getElementById('fps').textContent = clamp(state.fps,0,240);
+      document.getElementById('objCount').textContent = state.objects.length + state.particles.length;
+
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+
+    /* =========================================================
+       INTERACTION
+       ========================================================= */
+    const cursor = document.getElementById('cursor');
+
+    addEventListener('resize', ()=>{
+      W = innerWidth; H = innerHeight;
+      canvas.width = W * DPR; canvas.height = H * DPR; ctx.scale(DPR, DPR);
+      rebuildCity();
+    });
+
+    addEventListener('mousemove', (e)=>{
+      state.mouse.vx = e.clientX - state.mouse.x;
+      state.mouse.vy = e.clientY - state.mouse.y;
+      state.mouse.x = e.clientX; state.mouse.y = e.clientY;
+      cursor.style.transform = `translate3d(${state.mouse.x}px,${state.mouse.y}px,0)`;
+
+      // waves poke
+      if (state.mode === 'waves') {
+        const rows = state.waveField.length;
+        if (rows) {
+          const cols = state.waveField[0].length;
+          const cellW = W/cols;
+          const cellH = (H*0.55)/rows;
+          const xi = clamp(Math.floor((state.mouse.x)/cellW), 0, cols-1);
+          const yi = clamp(Math.floor((state.mouse.y - H*0.18)/cellH), 0, rows-1);
+          const power = 18 + (state.mouse.down ? 22 : 0);
+          for (let y=yi-2;y<=yi+2;y++) {
+            for (let x=xi-2;x<=xi+2;x++) {
+              if (state.waveField[y] && state.waveField[y][x]) {
+                const d = Math.hypot(x-xi, y-yi);
+                state.waveField[y][x].z += Math.max(0, power - d*10);
+              }
+            }
+          }
+          state.ripples.push({ x: state.mouse.x, y: state.mouse.y, r: 0, a: 0.35, hue: (performance.now()/20)%360 });
+        }
+      }
+
+      // wind effect near edges
+      const edge = Math.min(state.mouse.x, W - state.mouse.x) / (W/2);
+      state.wind = lerp(state.wind, (1-edge)*60 * (state.mouse.down?1.4:1.0), 0.06);
+    });
+
+    addEventListener('mousedown', (e)=>{
+      state.mouse.down = true;
+      const strong = e.shiftKey;
+      spawnBurst(e.clientX, e.clientY, strong ? randi(120, 200) : randi(36, 84));
+    });
+
+    addEventListener('mouseup', ()=>{ state.mouse.down = false });
+
+    addEventListener('keydown', (e)=>{
+      if (e.code === 'Space') { spawnBurst(state.mouse.x, state.mouse.y, randi(60, 120)) }
+      if (e.key.toLowerCase() === 'c') { state.particles = []; showToast('Parçacıklar temizlendi.'); }
+      if (e.key.toLowerCase() === 'm') { cycleMode(); }
+      if (e.key.toLowerCase() === 'n') { toggleNight(); }
+    });
+
+    function cycleMode() {
+      const modes = ['city','neon','waves','orbits','rain','aurora','fireworks','grid'];
+      const i = modes.indexOf(state.mode);
+      state.mode = modes[(i+1)%modes.length];
+      document.getElementById('sceneStatus').textContent = `Mod: ${labelMode(state.mode)}`;
+      updateChips();
+      updatePreview();
+      showToast('Mod: '+labelMode(state.mode));
+    }
+
+    function toggleNight() {
+      state.night = !state.night;
+      document.getElementById('sceneStatus').textContent = `Gece modu: ${state.night ? 'Açık' : 'Kapalı'}`;
+      showToast(state.night ? 'Gece modu açıldı.' : 'Gündüz modu açıldı.');
+    }
+
+    /* =========================================================
+       SIDEBAR CONTROLS
+       ========================================================= */
+    document.getElementById('btnBurst').addEventListener('click', ()=> spawnBurst(state.mouse.x, state.mouse.y, randi(60,120)));
+    document.getElementById('btnClear').addEventListener('click', ()=> { state.particles = []; showToast('Parçacıklar temizlendi.'); });
+    document.getElementById('btnShuffle').addEventListener('click', ()=>{
+      const modes = ['city','neon','waves','orbits','rain','aurora','fireworks','grid'];
+      state.mode = modes[randi(0,modes.length-1)];
+      state.palette = Object.keys(palettes)[randi(0, Object.keys(palettes).length-1)];
+      applyPalette(state.palette);
+      updateChips();
+      updatePreview();
+      spawnBurst(rand(W*0.2,W*0.8), rand(H*0.2,H*0.7), randi(80,160));
+      showToast('Karıştırıldı: '+labelMode(state.mode)+' • Palet: '+state.palette);
+    });
+    document.getElementById('btnNight').addEventListener('click', toggleNight);
+
+    // chips
+    const chipbar = document.getElementById('modeChips');
+    chipbar.addEventListener('click', (e)=>{
+      if (!e.target.classList.contains('chip')) return;
+      const m = e.target.dataset.mode;
+      state.mode = m;
+      updateChips();
+      updatePreview();
+      showToast('Mod: '+labelMode(m));
+    });
+    function updateChips() {
+      const chips = chipbar.querySelectorAll('.chip');
+      chips.forEach(ch=> ch.classList.toggle('active', ch.dataset.mode === state.mode));
+    }
+
+    // builder inputs
+    document.getElementById('inpBuildings').addEventListener('input', (e)=>{
+      state.buildings = +e.target.value;
+      rebuildCity();
+    });
+    document.getElementById('inpDensity').addEventListener('input', (e)=>{
+      state.density = +e.target.value;
+      updatePreview();
+    });
+    document.getElementById('inpWind').addEventListener('input', (e)=>{
+      state.wind = +e.target.value;
+      updatePreview();
+    });
+    document.getElementById('inpGlow').addEventListener('input', (e)=>{
+      state.glow = +e.target.value;
+      updatePreview();
+    });
+    document.getElementById('inpPalette').addEventListener('change', (e)=>{
+      state.palette = e.target.value;
+      applyPalette(state.palette);
+      updatePreview();
+    });
+    document.getElementById('btnRebuild').addEventListener('click', rebuildCity);
+    document.getElementById('btnExport').addEventListener('click', ()=>{
+      const a = document.createElement('a');
+      a.download = `metropolis-${Date.now()}.png`;
+      a.href = canvas.toDataURL('image/png');
+      a.click();
+      showToast('PNG dışa aktarıldı.');
+    });
+
+    // modal
+    document.getElementById('btnModal').addEventListener('click', ()=>{
+      document.getElementById('modalMask').style.display = 'flex';
+    });
+    document.getElementById('btnModalClose').addEventListener('click', ()=>{
+      document.getElementById('modalMask').style.display = 'none';
+    });
+    document.getElementById('modalMask').addEventListener('click', (e)=>{
+      if (e.target.id === 'modalMask') e.target.style.display = 'none';
+    });
+
+    /* =========================================================
+       TABS
+       ========================================================= */
+    const tabsEl = document.getElementById('tabs');
+    const TB = {
+      builder: document.getElementById('tab-builder'),
+      audio: document.getElementById('tab-audio'),
+      console: document.getElementById('tab-console'),
+    };
+    tabsEl.addEventListener('click', (e)=>{
+      if (!e.target.classList.contains('tab')) return;
+      tabsEl.querySelectorAll('.tab').forEach(t=> t.classList.remove('active'));
+      e.target.classList.add('active');
+      const tab = e.target.dataset.tab;
+      Object.keys(TB).forEach(k=> TB[k].classList.toggle('hidden', k!==tab));
+    });
+
+    /* =========================================================
+       CONSOLE
+       ========================================================= */
+    const cmdLog = document.getElementById('cmdLog');
+    const cmdInput = document.getElementById('cmdInput');
+    document.getElementById('btnRun').addEventListener('click', runCmd);
+    cmdInput.addEventListener('keydown', e=>{
+      if (e.key === 'Enter') runCmd();
+    });
+
+    function runCmd() {
+      const text = cmdInput.value.trim();
+      if (!text) return;
+      const lines = text.split(';').map(s=> s.trim()).filter(Boolean);
+      lines.forEach(cmd=>{
+        const parts = cmd.split(/\s+/);
+        const head = parts[0].toLowerCase();
+        const arg = parts.slice(1).join(' ');
+        let out = '';
+
+        try {
+          if (head === 'mode') {
+            state.mode = arg || 'city';
+            updateChips(); updatePreview();
+            out = `Mode set: ${labelMode(state.mode)}`;
+          } else if (head === 'burst') {
+            const n = +arg || randi(40, 100);
+            spawnBurst(state.mouse.x, state.mouse.y, n);
+            out = `Burst spawned: ${n}`;
+          } else if (head === 'palette') {
+            state.palette = arg || 'ocean';
+            applyPalette(state.palette); updatePreview();
+            out = `Palette set: ${state.palette}`;
+          } else if (head === 'night') {
+            state.night = arg ? arg.toLowerCase() === 'on' : !state.night;
+            out = `Night: ${state.night}`;
+          } else if (head === 'clear') {
+            state.particles = [];
+            out = 'Particles cleared';
+          } else if (head === 'rebuild') {
+            rebuildCity();
+            out = 'City rebuilt';
+          } else if (head === 'wind') {
+            state.wind = +arg || state.wind;
+            out = `Wind: ${state.wind}`;
+          } else if (head === 'density') {
+            state.density = +arg || state.density;
+            out = `Density: ${state.density}`;
+          } else if (head === 'buildings') {
+            state.buildings = +arg || state.buildings;
+            rebuildCity();
+            out = `Buildings: ${state.buildings}`;
+          } else {
+            out = `Unknown command: ${head}`;
+          }
+        } catch (err) {
+          out = `Error: ${err.message}`;
+        }
+
+        cmdLog.textContent += `\n> ${cmd}\n${out}`;
+        cmdLog.scrollTop = cmdLog.scrollHeight;
+      });
+
+      cmdInput.value = '';
+    }
+
+    /* =========================================================
+       AUDIO (NOISE SYNTH)
+       ========================================================= */
+    const audioBar = document.getElementById('audioBar');
+    document.getElementById('btnAudioToggle').addEventListener('click', toggleAudio);
+    document.getElementById('btnAudioPulse').addEventListener('click', ()=>{
+      pulseAudio();
+    });
+    document.getElementById('btnAudioShift').addEventListener('click', ()=>{
+      shiftAudioToPalette();
+    });
+
+    function ensureAudio() {
+      if (state.audio.ctx) return;
+      const AC = window.AudioContext || window.webkitAudioContext;
+      state.audio.ctx = new AC();
+      const ctxA = state.audio.ctx;
+
+      // noise node
+      const bufferSize = 2 * ctxA.sampleRate;
+      const buffer = ctxA.createBuffer(1, bufferSize, ctxA.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i=0;i<bufferSize;i++) { data[i] = Math.random()*2 - 1; }
+
+      const noise = ctxA.createBufferSource();
+      noise.buffer = buffer;
+      noise.loop = true;
+
+      const filter = ctxA.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = 800;
+
+      const gain = ctxA.createGain();
+      gain.gain.value = state.audio.gain;
+
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctxA.destination);
+
+      state.audio.node = { noise, filter, gain };
+    }
+
+    function toggleAudio() {
+      ensureAudio();
+      const { ctx, node, running } = state.audio;
+      if (!running) {
+        node.noise.start(0);
+        state.audio.running = true;
+        showToast('Ambiyans başladı.');
+      } else {
+        node.gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.6);
+        setTimeout(()=> {
+          try { node.noise.stop(); } catch(e) {}
+          state.audio.running = false;
+          // rebuild node to start again later
+          state.audio.ctx.close().then(()=>{
+            state.audio.ctx = null;
+            state.audio.node = null;
+          });
+          showToast('Ambiyans durdu.');
+        }, 700);
       }
     }
 
-    // Eğer hala yeterli değilse uyarı ver ama devam et
-    if (produced.length < min_rows) {
-      alert('Uyarı: Hedef satır sayısına ulaşılamadı. Üretilen satır sayısı: ' + produced.length);
+    function pulseAudio() {
+      if (!state.audio.node) return;
+      const g = state.audio.node.gain;
+      const v = rand(0.08, 0.30);
+      g.gain.cancelScheduledValues(0);
+      g.gain.setTargetAtTime(v, state.audio.ctx.currentTime, 0.12);
+      setTimeout(()=> g.gain.setTargetAtTime(state.audio.gain, state.audio.ctx.currentTime, 0.22), 260);
+      audioBar.style.transform = `scaleX(${clamp(v*3, 0.2, 1.8)})`;
+      setTimeout(()=> audioBar.style.transform = `scaleX(${clamp(state.audio.gain*3, 0.2, 1.6)})`, 420);
     }
 
-    // Sonuçları kaydet
-    lastRows = produced.slice(); // kopya
-    lastCSV = arrayToCSV(lastRows);
-
-    // Özet hesaplamaları
-    const flightTime = produced[produced.length-1][0];
-    // maksimum yükseklik
-    let maxH = -Infinity;
-    let timeToPeak = 0;
-    for (const r of produced) {
-      if (r[2] > maxH) { maxH = r[2]; timeToPeak = r[0]; }
+    function shiftAudioToPalette() {
+      if (!state.audio.node) return;
+      const p = palettes[state.palette];
+      const target = 400 + (p.accents[0]%360) * 1.2;
+      state.audio.node.filter.frequency.setTargetAtTime(target, state.audio.ctx.currentTime, 0.6);
+      showToast('Ses rengi palete uyarlandı.');
     }
-    // menzil (x at impact)
-    const range = produced[produced.length-1][1];
-    // çarpma hızı ve açısı
-    const last = produced[produced.length-1];
-    const impactSpeed = last[5];
-    const impactAngleRad = Math.atan2(last[4], last[3]); // vy, vx
-    const impactAngleDeg = impactAngleRad * 180.0 / Math.PI;
 
-    // Konsol ve özet kutusu güncelle
-    summaryBox.innerHTML = '';
-    const sHtml = document.createElement('div');
-    sHtml.innerHTML = '<p><strong>Uçuş süresi:</strong> ' + formatNum(flightTime,4) + ' s</p>'
-      + '<p><strong>Maksimum yükseklik:</strong> ' + formatNum(maxH,4) + ' m</p>'
-      + '<p><strong>Menzil (x):</strong> ' + formatNum(range,4) + ' m</p>'
-      + '<p><strong>Çarpma hızı:</strong> ' + formatNum(impactSpeed,4) + ' m/s</p>'
-      + '<p><strong>Çarpma açısı:</strong> ' + formatNum(impactAngleDeg,3) + ' °</p>'
-      + '<p><strong>Zaman tepe:</strong> ' + formatNum(timeToPeak,4) + ' s</p>'
-      + '<p><strong>Toplam satır:</strong> ' + produced.length + '</p>';
-    summaryBox.appendChild(sHtml);
-
-    // İlk 10 ve son 10 satırı tablo olarak göster
-    function makeTableFromRows(rows) {
-      const tbl = document.createElement('table');
-      const thead = document.createElement('thead');
-      thead.innerHTML = '<tr><th>t (s)</th><th>x (m)</th><th>y (m)</th><th>vx (m/s)</th><th>vy (m/s)</th><th>|V| (m/s)</th><th>ax</th><th>ay</th></tr>';
-      tbl.appendChild(thead);
-      const tbody = document.createElement('tbody');
-      for (const r of rows) {
-        const tr = document.createElement('tr');
-        for (let i=0;i<r.length;i++) {
-          const td = document.createElement('td');
-          td.textContent = formatNum(r[i],5);
-          tr.appendChild(td);
-        }
-        tbody.appendChild(tr);
+    /* =========================================================
+       MISC EFFECTS
+       ========================================================= */
+    // Gentle wobble on HUD title
+    (function wobble(){
+      const el = document.querySelector('.hudTitle');
+      let t = 0;
+      function step(){
+        t += 0.008;
+        const x = Math.sin(t*0.9)*2;
+        const y = Math.cos(t*0.7)*2;
+        el.style.transform = `translate3d(${x}px,${y}px,0)`;
+        requestAnimationFrame(step);
       }
-      tbl.appendChild(tbody);
-      return tbl;
-    }
+      step();
+    })();
 
-    const first10 = produced.slice(0, Math.min(10, produced.length));
-    const last10 = produced.slice(Math.max(0, produced.length-10));
-    first10Box.innerHTML = '';
-    last10Box.innerHTML = '';
-    first10Box.appendChild(makeTableFromRows(first10));
-    last10Box.appendChild(makeTableFromRows(last10));
+    // Update preview at start
+    updatePreview();
 
-    // Grafik verilerini hazırla
-    const tArr = produced.map(r => r[0]);
-    const xArr = produced.map(r => r[1]);
-    const yArr = produced.map(r => r[2]);
-    const vxArr = produced.map(r => r[3]);
-    const vyArr = produced.map(r => r[4]);
-    const speedArr = produced.map(r => r[5]);
-    const axArr = produced.map(r => r[6]);
-    const ayArr = produced.map(r => r[7]);
+    // Scene hint updates
+    setInterval(()=>{
+      const hints = [
+        'İpucu: Shift basılı tutup patlatırsan çok daha güçlü bir efekt alırsın.',
+        'İpucu: “rain” modunda kenarlara yakınken rüzgâr yönü dramatik değişir.',
+        'İpucu: Paleti “aurora” + mod “orbits” ile mükemmel uyum yakalanır.',
+        'İpucu: Space ile patlat, M ile mod değiştir, N ile gece.',
+        'İpucu: Export PNG ile anlık görüntüyü kaydet.'
+      ];
+      document.getElementById('sceneHint').textContent = hints[randi(0,hints.length-1)];
+    }, 6000);
 
-    // Pozisyon grafiği: x(t) ve y(t) ayrı altgrafiklerde
-    const posLayout = {
-      title: 'Konum - Zaman',
-      grid: {rows:2, columns:1, pattern:'independent'},
-      height: 320,
-      margin: {t:40, l:60, r:20, b:40},
-      xaxis: {title:'t (s)', showgrid:true, zeroline:false},
-      xaxis2: {title:'t (s)', showgrid:true, zeroline:false},
-      yaxis: {title:'x (m)', showgrid:true},
-      yaxis2: {title:'y (m)', showgrid:true}
-    };
-    const posData = [
-      { x: tArr, y: xArr, name:'x(t) (m)', xaxis:'x1', yaxis:'y1', mode:'lines+markers', marker:{size:4}, line:{width:2} },
-      { x: tArr, y: yArr, name:'y(t) (m)', xaxis:'x2', yaxis:'y2', mode:'lines+markers', marker:{size:4}, line:{width:2} }
-    ];
-    Plotly.newPlot('posPlot', posData, posLayout, {responsive:true});
-
-    // Hız grafiği: |V|(t), vx, vy
-    const speedLayout = {
-      title: 'Hız - Zaman',
-      height: 300,
-      margin: {t:40, l:60, r:20, b:40},
-      xaxis: {title:'t (s)', showgrid:true},
-      yaxis: {title:'Hız (m/s)', showgrid:true}
-    };
-    const speedData = [
-      { x: tArr, y: speedArr, name:'|V|(t) (m/s)', mode:'lines+markers', marker:{size:4}, line:{width:2, color:'#0b69ff'} },
-      { x: tArr, y: vxArr, name:'vx (m/s)', mode:'lines+markers', marker:{size:3}, line:{width:1.5, dash:'dash', color:'#ff7f0e'} },
-      { x: tArr, y: vyArr, name:'vy (m/s)', mode:'lines+markers', marker:{size:3}, line:{width:1.5, dash:'dot', color:'#2ca02c'} }
-    ];
-    Plotly.newPlot('speedPlot', speedData, speedLayout, {responsive:true});
-
-    // İvme grafiği
-    const accLayout = {
-      title: 'İvme - Zaman',
-      height: 240,
-      margin: {t:40, l:60, r:20, b:40},
-      xaxis: {title:'t (s)', showgrid:true},
-      yaxis: {title:'İvme (m/s²)', showgrid:true}
-    };
-    const accData = [
-      { x: tArr, y: axArr, name:'ax (m/s²)', mode:'lines+markers', marker:{size:4}, line:{width:2, color:'#8a2be2'} },
-      { x: tArr, y: ayArr, name:'ay (m/s²)', mode:'lines+markers', marker:{size:4}, line:{width:2, color:'#d62728'} }
-    ];
-    Plotly.newPlot('accPlot', accData, accLayout, {responsive:true});
-
-    // Hover ve eksen sayı biçimlendirmesi: tüm grafiklerde eksenlerde sayılar görünür (Plotly varsayılan)
-    // Son olarak kullanıcıya bilgi ver
-    console.log('Simülasyon tamamlandı. Satır sayısı:', produced.length);
-  }
-
-  // Sayfa yüklendiğinde varsayılan simülasyonu çalıştır
-  window.addEventListener('load', () => {
-    // Otomatik çalıştırma istenirse uncomment:
-    // document.getElementById('runBtn').click();
-  });
   </script>
 </body>
 </html>
